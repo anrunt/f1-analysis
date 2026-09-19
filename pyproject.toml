@@ -8,3 +8,5 @@ dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.13.5",
 ]
+[tool.ruff.lint]
+ignore = ["I001"]

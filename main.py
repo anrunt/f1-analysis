@@ -1,12 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timedelta
+from time import sleep
 
 import httpx
-from pydantic import BaseModel, TypeAdapter, ValidationError
-from pydantic.type_adapter import TypeAdapterT
-from models import Session, Lap
+from pydantic import TypeAdapter, ValidationError
+from models import CarData, Session, Lap
 
 def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     lap_params = {"session_key": session_key, "driver_number": driver_number}
+    sleep(1)
     laps = httpx.get("https://api.openf1.org/v1/laps", params=lap_params, timeout=10)
 
     laps.raise_for_status()
@@ -31,6 +32,33 @@ def find_fastest_lap(laps: list[Lap]) -> Lap | None:
 
     return fastest_lap
 
+def fetch_car_data(lap: Lap) -> list[CarData] | None:
+    if lap.date_start is None or lap.lap_duration is None:
+        return None
+
+    lap_duration = timedelta(seconds=lap.lap_duration)
+
+    lap_end = lap.date_start + lap_duration
+
+    car_data_params = {
+        "date>": lap.date_start.isoformat(),
+        "date<": lap_end.isoformat(),
+        "driver_number": lap.driver_number,
+        "session_key": lap.session_key
+    }
+
+    sleep(1)
+    car_data = httpx.get("https://api.openf1.org/v1/car_data", params=car_data_params, timeout=10)
+
+    car_data.raise_for_status()
+
+    try:
+        validated_car_data = TypeAdapter(list[CarData]).validate_json(car_data.content)
+    except ValidationError as error:
+        raise ValueError("Error when parsing car data") from error
+
+    return validated_car_data
+
 def main():
     session_params = {
         "country_name": "Italy",
@@ -43,6 +71,7 @@ def main():
         "Piastri": 81
     }
 
+    sleep(1)
     sessions = httpx.get(
         "https://api.openf1.org/v1/sessions", params=session_params, timeout=10
     )
@@ -83,7 +112,7 @@ def main():
 
         drivers_fastest_lap[name] = fastest_lap
 
-    
+
     (first_driver, first_driver_lap), (second_driver, second_driver_lap) = drivers_fastest_lap.items()
 
     delta_label = f"Delta {first_driver[:3].upper()} − {second_driver[:3].upper()}"
@@ -121,6 +150,32 @@ def main():
         print(f"{second_driver} was faster than {first_driver} by {abs(delta):.3f} seconds")
     elif delta == 0:
         print(f"{first_driver} and {second_driver} had the same lap time of {first_driver_lap.lap_duration:.3f} seconds")
+
+
+    car_data = fetch_car_data(first_driver_lap)
+    
+    if car_data is None:
+        print("Lap date start or lap duration is null")
+    elif len(car_data) == 0:
+        print(f"No car data for {first_driver}")
+    else:
+        print(f"data_length: {len(car_data)}")
+        sorted_car_data = sorted(car_data, key=lambda data: data.date)
+
+        counter = 0
+        for data in sorted_car_data[:5]:
+            assert first_driver_lap.date_start is not None
+            relative_time = (data.date - first_driver_lap.date_start).total_seconds()
+            speed = data.speed
+            throttle = data.throttle
+            brake = data.brake
+
+            counter += 1
+
+            print(f"Data Point {counter}:")
+            print(f"Relative Time: {relative_time:.3f} s, Speed: {speed:.3f} km/h, Throttle: {throttle:.3f}, Brake: {brake:.3f}")
+
+
 
 if __name__ == "__main__":
     main()
