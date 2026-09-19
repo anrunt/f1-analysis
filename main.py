@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from time import sleep
 
 import httpx
@@ -153,7 +153,7 @@ def main():
 
 
     car_data = fetch_car_data(first_driver_lap)
-    
+
     if car_data is None:
         print("Lap date start or lap duration is null")
     elif len(car_data) == 0:
@@ -162,15 +162,12 @@ def main():
         print(f"data_length: {len(car_data)}")
         sorted_car_data = sorted(car_data, key=lambda data: data.date)
 
-        counter = 0
-        for data in sorted_car_data[:5]:
+        for counter, data in enumerate(sorted_car_data[:5]):
             assert first_driver_lap.date_start is not None
             relative_time = (data.date - first_driver_lap.date_start).total_seconds()
             speed = data.speed
             throttle = data.throttle
             brake = data.brake
-
-            counter += 1
 
             print(f"Data Point {counter}:")
             print(f"Relative Time: {relative_time:.3f} s, Speed: {speed:.3f} km/h, Throttle: {throttle:.3f}, Brake: {brake:.3f}")
