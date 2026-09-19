@@ -125,6 +125,28 @@ def main():
     
     (first_driver, first_driver_lap), (second_driver, second_driver_lap) = drivers_fastest_lap.items()
 
+    delta_label = f"Delta {first_driver[:3].upper()} − {second_driver[:3].upper()}"
+    print(f"\n{'Sektor':<8} {first_driver:>10} {second_driver:>10}  {delta_label}")
+
+    for sector_number in range(1, 4):
+        duration_sector_string = f"duration_sector_{sector_number}"
+
+        first_duration: float | None = getattr(first_driver_lap, duration_sector_string)
+        second_duration: float | None = getattr(second_driver_lap, duration_sector_string)
+
+        first_text = f"{first_duration:.3f}" if first_duration is not None else "brak"
+        second_text = f"{second_duration:.3f}" if second_duration is not None else "brak"
+
+        delta_text = "brak danych"
+        if first_duration is not None and second_duration is not None:
+            sector_duration_delta = first_duration - second_duration
+            delta_text = f"{sector_duration_delta:.3f} s"
+
+        sector_label = f"S{sector_number}"
+        print(f"{sector_label:<8} {first_text:>10} {second_text:>10}  {delta_text}")
+
+    print()
+
     assert first_driver_lap.lap_duration is not None
     assert second_driver_lap.lap_duration is not None
 
