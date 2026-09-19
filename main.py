@@ -3,46 +3,7 @@ from datetime import datetime
 import httpx
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from pydantic.type_adapter import TypeAdapterT
-
-
-class Session(BaseModel):
-    session_key: int
-    session_type: str
-    session_name: str
-    date_start: datetime
-    date_end: datetime
-    meeting_key: int
-    circuit_key: int
-    circuit_short_name: str
-    country_key: int
-    country_code: str
-    country_name: str
-    location: str
-    gmt_offset: str
-    year: int
-    is_cancelled: bool
-
-class Lap(BaseModel):
-   meeting_key: int
-   session_key: int
-   driver_number: int
-   lap_number: int
-   date_start: datetime | None
-
-   duration_sector_1: float | None
-   duration_sector_2: float | None
-   duration_sector_3: float | None
-   lap_duration: float | None
-
-   i1_speed: int | None
-   i2_speed: int | None
-   st_speed: int | None
-
-   is_pit_out_lap: bool
-
-   segments_sector_1: list[int | None] | None
-   segments_sector_2: list[int | None] | None
-   segments_sector_3: list[int | None] | None
+from models import Session, Lap
 
 def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     lap_params = {"session_key": session_key, "driver_number": driver_number}
