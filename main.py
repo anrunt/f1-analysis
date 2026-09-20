@@ -1,9 +1,11 @@
 from datetime import timedelta
+from datetime import datetime
 from time import sleep
 
 import httpx
 from pydantic import TypeAdapter, ValidationError
 from models import CarData, Session, Lap
+import pandas as pd
 
 def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     lap_params = {"session_key": session_key, "driver_number": driver_number}
@@ -58,6 +60,22 @@ def fetch_car_data(lap: Lap) -> list[CarData] | None:
         raise ValueError("Error when parsing car data") from error
 
     return validated_car_data
+
+def prepare_telemetry(samples: list[CarData], lap_start: datetime) -> pd.DataFrame:
+    data = [sample.model_dump() for sample in samples]
+
+    df = pd.DataFrame(data)
+
+    df["date"] = pd.to_datetime(df["date"], utc=True)
+
+    df = df.sort_values("date")
+
+    df["time_s"] = (df["date"] - lap_start).dt.total_seconds()
+
+    df["speed_m_s"] = df["speed"] / 3.6
+
+
+    return df
 
 def main():
     session_params = {
@@ -171,6 +189,11 @@ def main():
 
             print(f"Data Point {counter}:")
             print(f"Relative Time: {relative_time:.3f} s, Speed: {speed:.3f} km/h, Throttle: {throttle:.3f}, Brake: {brake:.3f}")
+
+        assert first_driver_lap.date_start is not None
+        df = prepare_telemetry(car_data, first_driver_lap.date_start)
+        print(df.head(5))
+    
 
 
 
