@@ -6,6 +6,7 @@ import httpx
 from pydantic import TypeAdapter, ValidationError
 from models import CarData, Session, Lap
 import pandas as pd
+import numpy as np
 
 def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     lap_params = {"session_key": session_key, "driver_number": driver_number}
@@ -74,6 +75,52 @@ def prepare_telemetry(samples: list[CarData], lap_start: datetime) -> pd.DataFra
 
     df["speed_m_s"] = df["speed"] / 3.6
 
+    df["dt_s"] = df["time_s"].diff()
+
+    df["distance_step_m"] = ((df["speed_m_s"].shift() + df["speed_m_s"]) / 2) * df["dt_s"]
+
+    df.loc[df.index[0], "distance_step_m"] = 0
+
+    df["distance_m"] = df["distance_step_m"].cumsum()
+
+    final_distance = df["distance_m"].iloc[-1]
+    if final_distance <= 0:
+        raise ValueError("Final distance must be greater than zero!")
+
+    df["relative_distance"] = df["distance_m"] / final_distance
+
+    return df
+
+def resample_speed(grid, df: pd.DataFrame):
+    if len(df) < 2:
+        raise ValueError("Need at least 2 samples for resampling_speed")
+
+    relative_distance = df["relative_distance"].to_numpy()
+    if not np.all(np.isfinite(relative_distance)):
+        raise ValueError("Relative distance must be finite")
+
+    speed = df["speed"].to_numpy()  
+    if not np.all(np.isfinite(speed)):
+        raise ValueError("Speed must be finite")        
+
+    if not np.all(np.diff(relative_distance) > 0):
+        raise ValueError("Relative distances are not strictly increasing")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.min() < relative_distance[0]:
+        raise ValueError("Grid starts before source data")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.max() > relative_distance[-1]:
+        raise ValueError("Grid ends after source data")
+
+
+    resampled_speed = np.interp(grid, relative_distance, speed)
+
+    df = pd.DataFrame({
+        "relative_distance": grid,
+        "speed_kmh": resampled_speed
+    })
 
     return df
 
@@ -170,30 +217,36 @@ def main():
         print(f"{first_driver} and {second_driver} had the same lap time of {first_driver_lap.lap_duration:.3f} seconds")
 
 
-    car_data = fetch_car_data(first_driver_lap)
+    telemetry_by_driver: dict[str, pd.DataFrame] = {}
+    resampled_by_driver: dict[str, pd.DataFrame] = {}
 
-    if car_data is None:
-        print("Lap date start or lap duration is null")
-    elif len(car_data) == 0:
-        print(f"No car data for {first_driver}")
-    else:
-        print(f"data_length: {len(car_data)}")
-        sorted_car_data = sorted(car_data, key=lambda data: data.date)
+    grid = np.linspace(0, 1, 1001)
 
-        for counter, data in enumerate(sorted_car_data[:5]):
-            assert first_driver_lap.date_start is not None
-            relative_time = (data.date - first_driver_lap.date_start).total_seconds()
-            speed = data.speed
-            throttle = data.throttle
-            brake = data.brake
+    for driver, fastest_lap in drivers_fastest_lap.items():
+        car_data = fetch_car_data(fastest_lap)
 
-            print(f"Data Point {counter}:")
-            print(f"Relative Time: {relative_time:.3f} s, Speed: {speed:.3f} km/h, Throttle: {throttle:.3f}, Brake: {brake:.3f}")
+        if car_data is None:
+            print("Lap date start or lap duration is null")
+        elif len(car_data) == 0:
+            print(f"No car data for {driver}")
+        else:
+            print(f"data_length: {len(car_data)}")
 
-        assert first_driver_lap.date_start is not None
-        df = prepare_telemetry(car_data, first_driver_lap.date_start)
-        print(df.head(5))
-    
+            assert fastest_lap.date_start is not None
+            telemetry_df = prepare_telemetry(car_data, fastest_lap.date_start)
+
+            telemetry_by_driver[driver] = telemetry_df
+
+            print(f"Driver: {driver}")
+            print(telemetry_df.head(2))
+            print(telemetry_df.tail(1))
+
+            resampled_speed_df = resample_speed(grid, telemetry_df)
+
+            resampled_by_driver[driver] = resampled_speed_df
+
+            print(resampled_speed_df)
+
 
 
 
