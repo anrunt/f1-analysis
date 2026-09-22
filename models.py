@@ -52,3 +52,21 @@ class CarData(BaseModel):
     throttle: int
     drs: int
     n_gear: int
+
+class DriverComparisonData(BaseModel):
+    driver_number: int
+    lap_number: int
+    lap_time_s: float
+    sector_times_s: list[float | None]
+    speed_kmh: list[float] | None
+
+
+class ComparisonResult(BaseModel):
+    session_key: int
+    driver_a: DriverComparisonData
+    driver_b: DriverComparisonData
+    lap_delta_s: float
+    sector_deltas_s: list[float | None]
+    relative_distance: list[float]
+
+
