@@ -101,7 +101,7 @@ def resample_speed(grid, df: pd.DataFrame):
 
     speed = df["speed"].to_numpy()  
     if not np.all(np.isfinite(speed)):
-        raise ValueError("Speed must be finite")        
+        raise ValueError("Speed must be finite")
 
     if not np.all(np.diff(relative_distance) > 0):
         raise ValueError("Relative distances are not strictly increasing")
