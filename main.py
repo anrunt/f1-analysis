@@ -5,6 +5,7 @@ from time import sleep
 import httpx
 from pydantic import TypeAdapter, ValidationError
 from models import CarData, ComparisonResult, DriverComparisonData, Session, Lap
+from errors import SameDriverError, LapNotFoundError, OpenF1DataError
 import pandas as pd
 import numpy as np
 
@@ -18,10 +19,11 @@ def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     try:
         validate_laps = TypeAdapter(list[Lap]).validate_json(laps.content)
     except ValidationError as error:
-        raise ValueError("Error when parsing lap data") from error
+        raise OpenF1DataError("OpenF1 returned invalid data lap") from error
 
     print(f"Downloaded {len(validate_laps)} laps for driver number {lap_params["driver_number"]}")
     return validate_laps
+
 
 def find_fastest_lap(laps: list[Lap]) -> Lap | None:
     fastest_lap: Lap | None = None
@@ -34,6 +36,7 @@ def find_fastest_lap(laps: list[Lap]) -> Lap | None:
                     fastest_lap = lap
 
     return fastest_lap
+
 
 def fetch_car_data(lap: Lap) -> list[CarData] | None:
     if lap.date_start is None or lap.lap_duration is None:
@@ -58,7 +61,7 @@ def fetch_car_data(lap: Lap) -> list[CarData] | None:
     try:
         validated_car_data = TypeAdapter(list[CarData]).validate_json(car_data.content)
     except ValidationError as error:
-        raise ValueError("Error when parsing car data") from error
+        raise OpenF1DataError("OpenF1 returned invalid car data") from error
 
     return validated_car_data
 
@@ -93,6 +96,7 @@ def prepare_telemetry(samples: list[CarData], lap_start: datetime) -> pd.DataFra
 
     return df
 
+
 def resample_speed(grid, df: pd.DataFrame):
     if len(df) < 2:
         raise ValueError("Need at least 2 samples for resampling_speed")
@@ -126,9 +130,10 @@ def resample_speed(grid, df: pd.DataFrame):
 
     return df
 
+
 def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonResult:
     if driver_a == driver_b:
-        raise ValueError("Pick two different drivers")
+        raise SameDriverError("Pick two different drivers")
 
     drivers_fastest_lap: dict[int, Lap] = {}
 
@@ -137,7 +142,7 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         fastest_lap = find_fastest_lap(laps)
 
         if fastest_lap is None:
-            raise ValueError(f"Driver nr.{number} has not set fastest_lap")
+            raise LapNotFoundError(f"Driver nr.{number} has not set fastest_lap")
 
         drivers_fastest_lap[number] = fastest_lap
 
