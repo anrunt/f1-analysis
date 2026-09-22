@@ -5,6 +5,7 @@ from time import sleep
 import httpx
 from pydantic import TypeAdapter, ValidationError
 from models import CarData, ComparisonResult, DriverComparisonData, Session, Lap
+from errors import SameDriverError, LapNotFoundError, OpenF1DataError
 import pandas as pd
 import numpy as np
 
@@ -18,10 +19,11 @@ def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     try:
         validate_laps = TypeAdapter(list[Lap]).validate_json(laps.content)
     except ValidationError as error:
-        raise ValueError("Error when parsing lap data") from error
+        raise OpenF1DataError("OpenF1 returned invalid data lap") from error
 
     print(f"Downloaded {len(validate_laps)} laps for driver number {lap_params["driver_number"]}")
     return validate_laps
+
 
 def find_fastest_lap(laps: list[Lap]) -> Lap | None:
     fastest_lap: Lap | None = None
@@ -34,6 +36,7 @@ def find_fastest_lap(laps: list[Lap]) -> Lap | None:
                     fastest_lap = lap
 
     return fastest_lap
+
 
 def fetch_car_data(lap: Lap) -> list[CarData] | None:
     if lap.date_start is None or lap.lap_duration is None:
@@ -58,7 +61,7 @@ def fetch_car_data(lap: Lap) -> list[CarData] | None:
     try:
         validated_car_data = TypeAdapter(list[CarData]).validate_json(car_data.content)
     except ValidationError as error:
-        raise ValueError("Error when parsing car data") from error
+        raise OpenF1DataError("OpenF1 returned invalid car data") from error
 
     return validated_car_data
 
@@ -93,6 +96,7 @@ def prepare_telemetry(samples: list[CarData], lap_start: datetime) -> pd.DataFra
 
     return df
 
+
 def resample_speed(grid, df: pd.DataFrame):
     if len(df) < 2:
         raise ValueError("Need at least 2 samples for resampling_speed")
@@ -126,9 +130,10 @@ def resample_speed(grid, df: pd.DataFrame):
 
     return df
 
+
 def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonResult:
     if driver_a == driver_b:
-        raise ValueError("Pick two different drivers")
+        raise SameDriverError("Pick two different drivers")
 
     drivers_fastest_lap: dict[int, Lap] = {}
 
@@ -137,7 +142,7 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         fastest_lap = find_fastest_lap(laps)
 
         if fastest_lap is None:
-            raise ValueError(f"Driver nr.{number} has not set fastest_lap")
+            raise LapNotFoundError(f"Driver nr.{number} has not set fastest_lap")
 
         drivers_fastest_lap[number] = fastest_lap
 
@@ -265,86 +270,6 @@ def main():
     data = compare_laps(selected_session.session_key, drivers["Norris"], drivers["Piastri"])
 
     print(data)
-
-#    drivers_fastest_lap: dict[str, Lap] = {}
-#    for name, number in drivers.items():
-#        laps = fetch_laps(selected_session.session_key, number)
-#        fastest_lap = find_fastest_lap(laps)
-#
-#        if fastest_lap == None:
-#            print(f"{name} has not set fastest_lap")
-#            return
-#
-#        drivers_fastest_lap[name] = fastest_lap
-
-
-
-
-#    delta_label = f"Delta {first_driver[:3].upper()} − {second_driver[:3].upper()}"
-#    print(f"\n{'Sektor':<8} {first_driver:>10} {second_driver:>10}  {delta_label}")
-#
-#    for sector_number in range(1, 4):
-#        duration_sector_string = f"duration_sector_{sector_number}"
-#
-#        first_duration: float | None = getattr(first_driver_lap, duration_sector_string)
-#        second_duration: float | None = getattr(second_driver_lap, duration_sector_string)
-#
-#        first_text = f"{first_duration:.3f}" if first_duration is not None else "brak"
-#        second_text = f"{second_duration:.3f}" if second_duration is not None else "brak"
-#
-#        delta_text = "brak danych"
-#        if first_duration is not None and second_duration is not None:
-#            sector_duration_delta = first_duration - second_duration
-#            delta_text = f"{sector_duration_delta:.3f} s"
-#
-#        sector_label = f"S{sector_number}"
-#        print(f"{sector_label:<8} {first_text:>10} {second_text:>10}  {delta_text}")
-#
-#    print()
-#
-#    assert first_driver_lap.lap_duration is not None
-#    assert second_driver_lap.lap_duration is not None
-#
-#    delta = first_driver_lap.lap_duration - second_driver_lap.lap_duration
-#
-#    print(f"{first_driver} fastest lap: {first_driver_lap.lap_duration:.3f} seconds lap number: {first_driver_lap.lap_number}")
-#    print(f"{second_driver} fastest lap: {second_driver_lap.lap_duration:.3f} seconds lap number: {second_driver_lap.lap_number}")
-#    if delta < 0:
-#        print(f"{first_driver} was faster than {second_driver} by {abs(delta):.3f} seconds")
-#    elif delta > 0:
-#        print(f"{second_driver} was faster than {first_driver} by {abs(delta):.3f} seconds")
-#    elif delta == 0:
-#        print(f"{first_driver} and {second_driver} had the same lap time of {first_driver_lap.lap_duration:.3f} seconds")
-
-
-#    telemetry_by_driver: dict[str, pd.DataFrame] = {}
-#    resampled_by_driver: dict[str, pd.DataFrame] = {}
-#
-#    grid = np.linspace(0, 1, 1001)
-#
-#    for driver, fastest_lap in drivers_fastest_lap.items():
-#        car_data = fetch_car_data(fastest_lap)
-#
-#        if car_data is None:
-#            print("Lap date start or lap duration is null")
-#        elif len(car_data) == 0:
-#            print(f"No car data for {driver}")
-#        else:
-#            print(f"data_length: {len(car_data)}")
-#
-#            assert fastest_lap.date_start is not None
-#            telemetry_df = prepare_telemetry(car_data, fastest_lap.date_start)
-#
-#            telemetry_by_driver[driver] = telemetry_df
-#
-#            resampled_speed_df = resample_speed(grid, telemetry_df)
-#
-#            resampled_by_driver[driver] = resampled_speed_df
-#
-#            print(resampled_speed_df)
-
-
-
 
 if __name__ == "__main__":
     main()
