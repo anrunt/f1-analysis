@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { ApiErrorSchema, ComparisonResultSchema } from './types'
 import type { ComparisonResult } from './types'
+import SpeedComparisonChart from './components/SpeedComparisonChart'
 import './App.css'
 
 function App() {
@@ -89,6 +90,8 @@ function App() {
             </div>
             <strong>{result.lap_delta_s > 0 ? '+' : ''}{result.lap_delta_s.toFixed(3)} <span>s</span></strong>
           </div>
+
+          <SpeedComparisonChart result={result} />
         </section>
       )}
 
