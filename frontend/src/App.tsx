@@ -47,16 +47,16 @@ function App() {
 
       <section className="intro" aria-labelledby="page-title">
         <p className="eyebrow">MONZA · QUALIFYING · 2024</p>
-        <h1 id="page-title">Okrążenie <em>kontra</em> okrążenie.</h1>
+        <h1 id="page-title">Lap <em>against</em> lap.</h1>
         <p className="intro-description">
-          Zestawienie najszybszych dostępnych okrążeń Norrisa i Piastriego.
-          Jedno kliknięcie, dwa czasy, jedna różnica.
+          Compare Norris and Piastri’s fastest available laps.
+          One click, two lap times, one difference.
         </p>
         <button type="button" onClick={handleCompare} disabled={loading}>
-          {loading ? 'Ładowanie…' : 'Porównaj Norris vs Piastri'}
+          {loading ? 'Loading…' : 'Compare Norris vs Piastri'}
           <span aria-hidden="true">↗</span>
         </button>
-        {loading && <p className="status" role="status">Pobieranie danych okrążeń…</p>}
+        {loading && <p className="status" role="status">Fetching lap data…</p>}
         {error && <p className="error" role="alert">{error}</p>}
       </section>
 
@@ -64,20 +64,20 @@ function App() {
         <section className="results" aria-labelledby="results-title">
           <div className="results-heading">
             <p className="eyebrow">SESSION {result.session_key} / RESULTS</p>
-            <h2 id="results-title">Porównanie czasów</h2>
+            <h2 id="results-title">Lap times</h2>
           </div>
 
           <div className="lap-grid">
             <article className="lap-card">
-              <div className="lap-card-top"><span>KIEROWCA A</span><span>#{result.driver_a.driver_number}</span></div>
+              <div className="lap-card-top"><span>DRIVER A</span><span>#{result.driver_a.driver_number}</span></div>
               <h3>Norris</h3>
-              <p className="lap-meta">Okrążenie {result.driver_a.lap_number}</p>
+              <p className="lap-meta">Lap {result.driver_a.lap_number}</p>
               <p className="lap-time">{result.driver_a.lap_time_s.toFixed(3)} <span>s</span></p>
             </article>
             <article className="lap-card">
-              <div className="lap-card-top"><span>KIEROWCA B</span><span>#{result.driver_b.driver_number}</span></div>
+              <div className="lap-card-top"><span>DRIVER B</span><span>#{result.driver_b.driver_number}</span></div>
               <h3>Piastri</h3>
-              <p className="lap-meta">Okrążenie {result.driver_b.lap_number}</p>
+              <p className="lap-meta">Lap {result.driver_b.lap_number}</p>
               <p className="lap-time">{result.driver_b.lap_time_s.toFixed(3)} <span>s</span></p>
             </article>
           </div>
@@ -85,7 +85,7 @@ function App() {
           <div className="delta-row">
             <div>
               <span className="delta-label">DELTA / A − B</span>
-              <p>Wartość ujemna oznacza szybsze okrążenie kierowcy A.</p>
+              <p>A negative value means driver A set the faster lap.</p>
             </div>
             <strong>{result.lap_delta_s > 0 ? '+' : ''}{result.lap_delta_s.toFixed(3)} <span>s</span></strong>
           </div>
