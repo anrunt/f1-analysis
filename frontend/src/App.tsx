@@ -1,56 +1,12 @@
 import { useState } from 'react'
-import { z } from 'zod'
-import { ApiErrorSchema, ComparisonResultSchema } from './types'
-import type { ComparisonResult } from './types'
-import DriverSelector from './components/DriverSelector'
-import SpeedComparisonChart from './components/SpeedComparisonChart'
-import { useDrivers } from './hooks/useDrivers'
+import SessionComparison from './components/SessionComparison'
+import { useSessions } from './hooks/useSessions'
 import './App.css'
 
 function App() {
-  const { drivers, driversLoading, driversError } = useDrivers(9586)
-  const [result, setResult] = useState<ComparisonResult | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  function getDriverName(number: number) {
-    const driver = drivers.find((entry) => entry.driver_number === number)
-    return driver?.full_name ?? driver?.name_acronym ?? `Driver #${number}`
-  }
-
-  async function handleCompare(driverA: number, driverB: number) {
-    setResult(null)
-    setError(null)
-    setLoading(true)
-
-    const params = new URLSearchParams({
-      session_id: '9586',
-      driver_a: String(driverA),
-      driver_b: String(driverB),
-    })
-
-    try {
-      const response = await fetch(`/api/compare?${params}`)
-      const data: unknown = await response.json()
-
-      if (!response.ok) {
-        const apiError = ApiErrorSchema.safeParse(data)
-        throw new Error(apiError.success ? apiError.data.detail : 'Could not retrieve the comparison.')
-      }
-
-      setResult(ComparisonResultSchema.parse(data))
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof z.ZodError || caughtError instanceof SyntaxError
-          ? 'Received an invalid response from the server.'
-          : caughtError instanceof Error
-            ? caughtError.message
-            : 'Could not retrieve the comparison.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { sessions, sessionsLoading, sessionsError } = useSessions(2024)
+  const [selectedSessionKey, setSelectedSessionKey] = useState<number | null>(null)
+  const selectedSession = sessions.find((session) => session.session_key === selectedSessionKey) ?? null
 
   return (
     <main className="dashboard">
@@ -61,55 +17,40 @@ function App() {
       </header>
 
       <section className="intro" aria-labelledby="page-title">
-        <p className="eyebrow">MONZA · QUALIFYING · 2024</p>
+        <p className="eyebrow">QUALIFYING · 2024</p>
         <h1 id="page-title">Lap <em>against</em> lap.</h1>
         <p className="intro-description">
-          Choose two drivers to compare their fastest available laps.
+          Choose a qualifying session and two drivers to compare their fastest available laps.
           One click, two lap times, one difference.
         </p>
-        <DriverSelector
-          drivers={drivers}
-          driversLoading={driversLoading}
-          driversError={driversError}
-          comparing={loading}
-          onCompare={handleCompare}
-        />
-        {loading && <p className="status" role="status">Fetching lap data…</p>}
-        {error && <p className="error" role="alert">{error}</p>}
+        <div className="driver-field session-field">
+          <label htmlFor="session">Qualifying session</label>
+          <select
+            id="session"
+            value={selectedSessionKey ?? ''}
+            onChange={(event) => setSelectedSessionKey(event.target.value === '' ? null : Number(event.target.value))}
+            disabled={sessionsLoading}
+          >
+            <option value="">Select session</option>
+            {sessions.map((session) => (
+              <option key={session.session_key} value={session.session_key}>
+                {session.circuit_short_name} · {session.session_name} ·{' '}
+                {new Date(session.date_start).toLocaleDateString('en-GB', {
+                  day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+                })}
+              </option>
+            ))}
+          </select>
+        </div>
+        {sessionsLoading && <p className="status" role="status">Loading sessions…</p>}
+        {sessionsError && <p className="error" role="alert">{sessionsError}</p>}
+        {!sessionsLoading && !sessionsError && sessions.length === 0 && (
+          <p className="status">No qualifying sessions available for 2024.</p>
+        )}
       </section>
 
-      {result && (
-        <section className="results" aria-labelledby="results-title">
-          <div className="results-heading">
-            <p className="eyebrow">SESSION {result.session_key} / RESULTS</p>
-            <h2 id="results-title">Lap times</h2>
-          </div>
-
-          <div className="lap-grid">
-            <article className="lap-card">
-              <div className="lap-card-top"><span>DRIVER A</span><span>#{result.driver_a.driver_number}</span></div>
-              <h3>{getDriverName(result.driver_a.driver_number)}</h3>
-              <p className="lap-meta">Lap {result.driver_a.lap_number}</p>
-              <p className="lap-time">{result.driver_a.lap_time_s.toFixed(3)} <span>s</span></p>
-            </article>
-            <article className="lap-card">
-              <div className="lap-card-top"><span>DRIVER B</span><span>#{result.driver_b.driver_number}</span></div>
-              <h3>{getDriverName(result.driver_b.driver_number)}</h3>
-              <p className="lap-meta">Lap {result.driver_b.lap_number}</p>
-              <p className="lap-time">{result.driver_b.lap_time_s.toFixed(3)} <span>s</span></p>
-            </article>
-          </div>
-
-          <div className="delta-row">
-            <div>
-              <span className="delta-label">DELTA / A − B</span>
-              <p>A negative value means driver A set the faster lap.</p>
-            </div>
-            <strong>{result.lap_delta_s > 0 ? '+' : ''}{result.lap_delta_s.toFixed(3)} <span>s</span></strong>
-          </div>
-
-          <SpeedComparisonChart result={result} />
-        </section>
+      {selectedSession && (
+        <SessionComparison key={selectedSession.session_key} session={selectedSession} />
       )}
 
       <footer className="site-footer">01 / LAP COMPARISON <span>DATA SOURCE — OPENF1</span></footer>

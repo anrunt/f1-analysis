@@ -27,7 +27,9 @@
 .site-mark { color: #e9f56b; font-size: 26px; letter-spacing: 0; }
 .site-header-end { margin-left: auto; color: #8e9a90; }
 
-.intro { padding: clamp(72px, 12vw, 148px) 0 92px; }
+.intro { padding: clamp(72px, 12vw, 148px) 0 36px; }
+.session-controls { padding-bottom: 72px; }
+.session-field { max-width: 600px; }
 .eyebrow { color: #e9f56b; margin: 0 0 26px; }
 
 h1 {
@@ -123,7 +125,8 @@ h3 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 34p
   .dashboard { padding: 0 20px; }
   .site-header { min-height: 64px; }
   .site-header-end { display: none; }
-  .intro { padding: 76px 0 80px; }
+  .intro { padding: 76px 0 36px; }
+  .session-controls { padding-bottom: 64px; }
   .driver-picker { grid-template-columns: 1fr; }
   .lap-grid { grid-template-columns: 1fr; }
   .lap-card { padding: 22px; }

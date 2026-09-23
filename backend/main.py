@@ -9,6 +9,22 @@ from errors import SameDriverError, LapNotFoundError, OpenF1DataError
 import pandas as pd
 import numpy as np
 
+def fetch_sessions(year: int) -> list[Session]:
+    session_params = {"year": year, "session_name": "Qualifying"}
+
+    sleep(1)
+    sessions = httpx.get("https://api.openf1.org/v1/sessions", params=session_params, timeout=10)
+
+    sessions.raise_for_status()
+
+    try:
+        validated_sessions = TypeAdapter(list[Session]).validate_json(sessions.content)
+    except ValidationError as error:
+        raise OpenF1DataError("OpenF1 returned invalid session data") from error
+
+    return validated_sessions
+
+
 def fetch_drivers(session_key: int) -> list[Driver]:
     driver_params = {"session_key": session_key}
 
@@ -243,34 +259,17 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
 
 
 def main():
-    session_params = {
-        "country_name": "Italy",
-        "session_name": "Qualifying",
-        "year": 2024,
-    }
-
     drivers = {
         "Norris" : 4,
         "Piastri": 81
     }
 
-    sleep(1)
-    sessions = httpx.get(
-        "https://api.openf1.org/v1/sessions", params=session_params, timeout=10
-    )
+    sessions = fetch_sessions(2024)
 
-    sessions.raise_for_status()
-
-    try:
-        validate_session = TypeAdapter(list[Session]).validate_json(sessions.content)
-    except ValidationError as error:
-        print("Error when parsing session data: ", error)
-        return
-
-    print(f"Downloaded {len(validate_session)} sessions")
+    print(f"Downloaded {len(sessions)} sessions")
 
     selected_session: Session | None = None
-    for data in validate_session:
+    for data in sessions:
         if data.session_type == "Qualifying" and data.circuit_short_name == "Monza":
             print("Found Monza")
             print("Session Key: ", data.session_key)

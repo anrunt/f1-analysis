@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+export const SessionsSchema = z.array(z.object({
+  session_key: z.number().int(),
+  year: z.number().int(),
+  session_name: z.string(),
+  circuit_short_name: z.string(),
+  date_start: z.string(),
+}))
+
+export type Session = z.infer<typeof SessionsSchema>[number]
+
 export const DriversSchema = z.array(z.object({
   session_key: z.number().int(),
   driver_number: z.number().int(),

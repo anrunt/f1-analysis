@@ -3,10 +3,35 @@ import httpx
 from fastapi import FastAPI, HTTPException
 
 from errors import LapNotFoundError, SameDriverError, OpenF1DataError
-from main import compare_laps, fetch_drivers
-from models import ComparisonResult, Driver
+from main import compare_laps, fetch_drivers, fetch_sessions
+from models import ComparisonResult, Driver, Session
 
 app = FastAPI()
+
+@app.get("/sessions", response_model=list[Session])
+def get_sessions(year: int) -> list[Session]:
+    try:
+        return fetch_sessions(year)
+    except OpenF1DataError:
+        raise HTTPException(
+            status_code=502,
+            detail="OpenF1 returned data in unexpected format"
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail="OpenF1 request timed out"
+        )
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=502,
+            detail="Could not retrieve data from OpenF1"
+        )
+    except httpx.HTTPStatusError:
+        raise HTTPException(
+            status_code=502,
+            detail="OpenF1 returned an unsuccessful response"
+        )
 
 @app.get("/drivers", response_model=list[Driver])
 def get_drivers(session_id: int) -> list[Driver]:
