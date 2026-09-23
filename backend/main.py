@@ -4,10 +4,26 @@ from time import sleep
 
 import httpx
 from pydantic import TypeAdapter, ValidationError
-from models import CarData, ComparisonResult, DriverComparisonData, Session, Lap
+from models import CarData, ComparisonResult, Driver, DriverComparisonData, Session, Lap
 from errors import SameDriverError, LapNotFoundError, OpenF1DataError
 import pandas as pd
 import numpy as np
+
+def fetch_drivers(session_key: int) -> list[Driver]:
+    driver_params = {"session_key": session_key}
+
+    sleep(1)
+    drivers = httpx.get("https://api.openf1.org/v1/drivers", params=driver_params, timeout=10)
+
+    drivers.raise_for_status()
+
+    try:
+        validated_drivers = TypeAdapter(list[Driver]).validate_json(drivers.content)
+    except ValidationError as error:
+        raise OpenF1DataError("OpenF1 returned invalid driver data") from error
+
+    return validated_drivers
+
 
 def fetch_laps(session_key: int, driver_number: int) -> list[Lap]:
     lap_params = {"session_key": session_key, "driver_number": driver_number}
@@ -105,7 +121,7 @@ def resample_speed(grid, df: pd.DataFrame):
     if not np.all(np.isfinite(relative_distance)):
         raise ValueError("Relative distance must be finite")
 
-    speed = df["speed"].to_numpy()  
+    speed = df["speed"].to_numpy()
     if not np.all(np.isfinite(speed)):
         raise ValueError("Speed must be finite")
 
@@ -169,7 +185,7 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
 
     if driver_a_lap.lap_duration is None or driver_b_lap.lap_duration is None:
         raise ValueError("One of the drivers lap durations is none")
-        
+
     lap_delta_s = driver_a_lap.lap_duration - driver_b_lap.lap_duration
 
 

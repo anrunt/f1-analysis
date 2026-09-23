@@ -53,6 +53,20 @@ class CarData(BaseModel):
     drs: int
     n_gear: int
 
+class Driver(BaseModel):
+    meeting_key: int
+    session_key: int
+    driver_number: int
+    broadcast_name: str | None
+    full_name: str | None
+    name_acronym: str | None
+    team_name: str | None
+    team_colour: str | None
+    first_name: str | None
+    last_name: str | None
+    headshot_url: str | None
+    country_code: str | None = None
+
 class DriverComparisonData(BaseModel):
     driver_number: int
     lap_number: int
@@ -68,5 +82,3 @@ class ComparisonResult(BaseModel):
     lap_delta_s: float
     sector_deltas_s: list[float | None]
     relative_distance: list[float]
-
-
