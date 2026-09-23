@@ -1,5 +1,15 @@
 import { z } from 'zod'
 
+export const DriversSchema = z.array(z.object({
+  session_key: z.number().int(),
+  driver_number: z.number().int(),
+  full_name: z.string().nullable(),
+  name_acronym: z.string().nullable(),
+  team_name: z.string().nullable(),
+}))
+
+export type Driver = z.infer<typeof DriversSchema>[number]
+
 export const DriverComparisonDataSchema = z.object({
   driver_number: z.number().int(),
   lap_number: z.number().int(),

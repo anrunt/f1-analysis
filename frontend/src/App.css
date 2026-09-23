@@ -49,6 +49,31 @@ h1 em { font-weight: 400; color: #e9f56b; }
   margin: 32px 0 36px;
 }
 
+.driver-picker {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  max-width: 840px;
+  margin-bottom: 26px;
+}
+
+.driver-field { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.driver-field label { color: #e9f56b; font: 700 11px 'Courier New', monospace; letter-spacing: .14em; text-transform: uppercase; }
+.driver-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 16px 40px 16px 16px;
+  color: #f4f1e9;
+  background: #1b211e;
+  border: 1px solid #3a403b;
+  border-radius: 0;
+  color-scheme: dark;
+  font: inherit;
+  cursor: pointer;
+}
+.driver-field select:focus-visible { outline: 2px solid #e9f56b; outline-offset: 2px; }
+.driver-field select:disabled { opacity: .55; cursor: not-allowed; }
+
 button {
   display: inline-flex;
   justify-content: space-between;
@@ -77,7 +102,7 @@ h2 { font-family: Georgia, serif; font-size: 32px; font-weight: 400; margin: 0; 
 .lap-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: #3a403b; border: 1px solid #3a403b; }
 .lap-card { background: #1b211e; padding: 30px; }
 .lap-card-top { display: flex; justify-content: space-between; color: #e9f56b; }
-h3 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 34px 0 0; }
+h3 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 34px 0 0; overflow-wrap: anywhere; }
 .lap-meta { color: #abb5a9; margin: 8px 0 38px; }
 .lap-time { font-family: 'Courier New', monospace; font-size: clamp(38px, 5vw, 64px); letter-spacing: -.07em; margin: 0; }
 .lap-time span, .delta-row strong span { font-size: .4em; letter-spacing: 0; color: #abb5a9; }
@@ -99,6 +124,7 @@ h3 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 34p
   .site-header { min-height: 64px; }
   .site-header-end { display: none; }
   .intro { padding: 76px 0 80px; }
+  .driver-picker { grid-template-columns: 1fr; }
   .lap-grid { grid-template-columns: 1fr; }
   .lap-card { padding: 22px; }
   .lap-meta { margin-bottom: 20px; }

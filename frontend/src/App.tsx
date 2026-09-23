@@ -2,21 +2,35 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { ApiErrorSchema, ComparisonResultSchema } from './types'
 import type { ComparisonResult } from './types'
+import DriverSelector from './components/DriverSelector'
 import SpeedComparisonChart from './components/SpeedComparisonChart'
+import { useDrivers } from './hooks/useDrivers'
 import './App.css'
 
 function App() {
+  const { drivers, driversLoading, driversError } = useDrivers(9586)
   const [result, setResult] = useState<ComparisonResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleCompare() {
+  function getDriverName(number: number) {
+    const driver = drivers.find((entry) => entry.driver_number === number)
+    return driver?.full_name ?? driver?.name_acronym ?? `Driver #${number}`
+  }
+
+  async function handleCompare(driverA: number, driverB: number) {
     setResult(null)
     setError(null)
     setLoading(true)
 
+    const params = new URLSearchParams({
+      session_id: '9586',
+      driver_a: String(driverA),
+      driver_b: String(driverB),
+    })
+
     try {
-      const response = await fetch('/api/compare?session_id=9586&driver_a=4&driver_b=81')
+      const response = await fetch(`/api/compare?${params}`)
       const data: unknown = await response.json()
 
       if (!response.ok) {
@@ -50,13 +64,16 @@ function App() {
         <p className="eyebrow">MONZA · QUALIFYING · 2024</p>
         <h1 id="page-title">Lap <em>against</em> lap.</h1>
         <p className="intro-description">
-          Compare Norris and Piastri’s fastest available laps.
+          Choose two drivers to compare their fastest available laps.
           One click, two lap times, one difference.
         </p>
-        <button type="button" onClick={handleCompare} disabled={loading}>
-          {loading ? 'Loading…' : 'Compare Norris vs Piastri'}
-          <span aria-hidden="true">↗</span>
-        </button>
+        <DriverSelector
+          drivers={drivers}
+          driversLoading={driversLoading}
+          driversError={driversError}
+          comparing={loading}
+          onCompare={handleCompare}
+        />
         {loading && <p className="status" role="status">Fetching lap data…</p>}
         {error && <p className="error" role="alert">{error}</p>}
       </section>
@@ -71,13 +88,13 @@ function App() {
           <div className="lap-grid">
             <article className="lap-card">
               <div className="lap-card-top"><span>DRIVER A</span><span>#{result.driver_a.driver_number}</span></div>
-              <h3>Norris</h3>
+              <h3>{getDriverName(result.driver_a.driver_number)}</h3>
               <p className="lap-meta">Lap {result.driver_a.lap_number}</p>
               <p className="lap-time">{result.driver_a.lap_time_s.toFixed(3)} <span>s</span></p>
             </article>
             <article className="lap-card">
               <div className="lap-card-top"><span>DRIVER B</span><span>#{result.driver_b.driver_number}</span></div>
-              <h3>Piastri</h3>
+              <h3>{getDriverName(result.driver_b.driver_number)}</h3>
               <p className="lap-meta">Lap {result.driver_b.lap_number}</p>
               <p className="lap-time">{result.driver_b.lap_time_s.toFixed(3)} <span>s</span></p>
             </article>
