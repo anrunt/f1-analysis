@@ -1,0 +1,65 @@
+from pathlib import Path
+import sqlite3
+import time
+
+from models import ComparisonResult
+
+DB_PATH = Path(__file__).parent/"data"/"comparisons.sqlite3"
+
+CREATE_DB_STATEMENT = """
+    CREATE TABLE IF NOT EXISTS comparison_cache (
+        session_key INTEGER NOT NULL,
+        driver_a_number INTEGER NOT NULL,
+        driver_b_number INTEGER NOT NULL,
+        result_json TEXT NOT NULL,
+        created_at REAL NOT NULL,
+        expires_at REAL NOT NULL,
+        PRIMARY KEY (session_key, driver_a_number, driver_b_number)
+    )
+"""
+
+INSERT_VALUES_STATEMENT = """
+    INSERT INTO comparison_cache (
+        session_key, driver_a_number, driver_b_number, result_json,
+        created_at, expires_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT (session_key, driver_a_number, driver_b_number)
+    DO UPDATE SET
+        result_json = excluded.result_json,
+        created_at = excluded.created_at,
+        expires_at = excluded.expires_at
+"""
+
+def init_cache():
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    connection = sqlite3.connect(DB_PATH)
+
+    try:
+        connection.execute(CREATE_DB_STATEMENT)
+    finally:
+        connection.close()
+
+def save_comparison(result: ComparisonResult, ttl_seconds: int) -> None:
+    if ttl_seconds <= 0:
+        raise ValueError("ttl_seconds less or equal 0")
+
+    session_key = result.session_key
+
+    driver_a_number = result.driver_a.driver_number
+    driver_b_number = result.driver_b.driver_number
+
+    result_json = result.model_dump_json()
+
+    created_at = time.time()
+    expires_at = created_at + ttl_seconds
+
+    values_to_insert = (session_key, driver_a_number, driver_b_number, result_json, created_at, expires_at)
+
+    connection = sqlite3.connect(DB_PATH)
+
+    try:
+        with connection:
+            connection.execute(INSERT_VALUES_STATEMENT, values_to_insert)
+    finally:
+        connection.close()
