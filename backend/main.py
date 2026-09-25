@@ -4,6 +4,7 @@ from time import sleep
 
 import httpx
 from pydantic import TypeAdapter, ValidationError
+import cache
 from models import CarData, ComparisonResult, Driver, DriverComparisonData, Session, Lap
 from errors import SameDriverError, LapNotFoundError, OpenF1DataError
 import pandas as pd
@@ -167,6 +168,10 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
     if driver_a == driver_b:
         raise SameDriverError("Pick two different drivers")
 
+    cache_result = cache.get_comparison(session_key, driver_a, driver_b)
+    if cache_result is not None:
+        return cache_result
+
     drivers_fastest_lap: dict[int, Lap] = {}
 
     for number in [driver_a, driver_b]:
@@ -254,6 +259,8 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         sector_deltas_s=sector_deltas_s,
         relative_distance=grid.tolist()
     )
+
+    cache.save_comparison(comparison_result, 3600) # 1hour ttl
 
     return comparison_result
 
