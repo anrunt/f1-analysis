@@ -1,12 +1,19 @@
 import httpx
 
 from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
 
+import cache
 from errors import LapNotFoundError, SameDriverError, OpenF1DataError
 from main import compare_laps, fetch_drivers, fetch_sessions
 from models import ComparisonResult, Driver, Session
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    cache.init_cache()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 @app.get("/sessions", response_model=list[Session])
 def get_sessions(year: int) -> list[Session]:

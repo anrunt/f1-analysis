@@ -2,6 +2,8 @@ from pathlib import Path
 import sqlite3
 import time
 
+from pydantic import ValidationError
+
 from models import ComparisonResult
 
 DB_PATH = Path(__file__).parent/"data"/"comparisons.sqlite3"
@@ -88,3 +90,16 @@ def get_comparison(session_key: int, driver_a_number: int, driver_b_number: int)
 
     if result is None:
         return None
+
+    result_json, expires_at = result
+
+    if expires_at <= time.time():
+        return None
+
+    try:
+        validated_json = ComparisonResult.model_validate_json(result_json)
+    except ValidationError:
+        return None
+
+    return validated_json
+
