@@ -30,6 +30,14 @@ INSERT_VALUES_STATEMENT = """
         expires_at = excluded.expires_at
 """
 
+SELECT_VALUES_STATEMENT = """
+    SELECT result_json, expires_at 
+    FROM comparison_cache
+    WHERE session_key = ?
+        AND driver_a_number = ?
+        AND driver_b_number = ?
+"""
+
 def init_cache():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -63,3 +71,20 @@ def save_comparison(result: ComparisonResult, ttl_seconds: int) -> None:
             connection.execute(INSERT_VALUES_STATEMENT, values_to_insert)
     finally:
         connection.close()
+
+def get_comparison(session_key: int, driver_a_number: int, driver_b_number: int) -> ComparisonResult | None:
+    connection = sqlite3.connect(DB_PATH)
+
+    values_to_select = (session_key, driver_a_number, driver_b_number)
+
+    try:
+        cursor = connection.cursor()
+        cursor.execute(SELECT_VALUES_STATEMENT, values_to_select)
+
+        result = cursor.fetchone()
+    finally:
+        connection.close()
+
+
+    if result is None:
+        return None
