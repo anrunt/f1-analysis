@@ -4,13 +4,25 @@ from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 
 import cache
+import logging
 from errors import LapNotFoundError, SameDriverError, OpenF1DataError
 from main import compare_laps, fetch_drivers, fetch_sessions
 from models import ComparisonResult, Driver, Session
 
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        datefmt="%H:%M:%S"
+    )
+
     cache.init_cache()
+    deleted = cache.delete_expired_comparisons()
+
+    logger.info("cache_cleanup deleted %s rows", deleted)
     yield
 
 app = FastAPI(lifespan=lifespan)

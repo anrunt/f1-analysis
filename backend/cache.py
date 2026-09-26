@@ -40,6 +40,11 @@ SELECT_VALUES_STATEMENT = """
         AND driver_b_number = ?
 """
 
+DELETE_VALUES_STATEMENT = """
+    DELETE from comparison_cache
+    WHERE expires_at <= ?
+"""
+
 def init_cache():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -103,3 +108,17 @@ def get_comparison(session_key: int, driver_a_number: int, driver_b_number: int)
 
     return validated_json
 
+
+def delete_expired_comparisons() -> int:
+    current_time = time.time()
+
+    connection = sqlite3.connect(DB_PATH)
+
+    try:
+        with connection:
+            cursor = connection.cursor()
+            cursor.execute(DELETE_VALUES_STATEMENT, (current_time,))
+
+            return cursor.rowcount
+    finally:
+        connection.close()

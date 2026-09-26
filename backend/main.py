@@ -3,12 +3,15 @@ from datetime import datetime
 from time import sleep
 
 import httpx
+import logging
 from pydantic import TypeAdapter, ValidationError
 import cache
 from models import CarData, ComparisonResult, Driver, DriverComparisonData, Session, Lap
 from errors import SameDriverError, LapNotFoundError, OpenF1DataError
 import pandas as pd
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 def fetch_sessions(year: int) -> list[Session]:
     session_params = {"year": year, "session_name": "Qualifying"}
@@ -170,8 +173,10 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
 
     cache_result = cache.get_comparison(session_key, driver_a, driver_b)
     if cache_result is not None:
+        logger.info("cache_hit for session_key=%s, driver_a=%s, driver_b=%s", session_key, driver_a, driver_b)
         return cache_result
 
+    logger.info("cache_miss for session_key=%s, driver_a=%s, driver_b=%s", session_key, driver_a, driver_b)
     drivers_fastest_lap: dict[int, Lap] = {}
 
     for number in [driver_a, driver_b]:
