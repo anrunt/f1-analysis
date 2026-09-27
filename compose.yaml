@@ -1,0 +1,12 @@
+services:
+  backend:
+    build: ./backend
+    image: f1-backend:local
+    ports:
+      - "127.0.0.1:9000:8000"
+    volumes:
+      - "f1-cache:/app/data"
+
+volumes:
+  f1-cache:
+    external: true
