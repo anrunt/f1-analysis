@@ -7,6 +7,16 @@ services:
     volumes:
       - "f1-cache:/app/data"
 
+  frontend:
+    build: ./frontend
+    image: f1-frontend:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      backend:
+        condition: service_started
+        restart: true
+
 volumes:
   f1-cache:
     external: true
