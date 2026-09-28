@@ -111,3 +111,7 @@ def get_comparison(session_id: int, driver_a: int, driver_b: int) -> ComparisonR
             status_code=502,
             detail="OpenF1 returned an unsuccessful response"
         )
+
+@app.get("/health")
+def get_health() -> dict[str, str]:
+    return {"status": "ok"}

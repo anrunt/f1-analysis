@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend
+    image: f1-backend:local
+    ports:
+      - "127.0.0.1:9000:8000"
+    volumes:
+      - "f1-cache:/app/data"
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import httpx; httpx.get('http://127.0.0.1:8000/health', timeout=2).raise_for_status()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    image: f1-frontend:local
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+        restart: true
+
+volumes:
+  f1-cache:
+    external: true
