@@ -1,0 +1,26 @@
+name: f1-analysis-prod
+
+services: 
+  backend:
+    image: "${BACKEND_IMAGE:?Select BACKEND_IMAGE}"
+    restart: unless-stopped
+    volumes:
+      - "f1-cache:/app/data"
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import httpx; httpx.get('http://127.0.0.1:8000/health', timeout=2).raise_for_status()"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    image: "${FRONTEND_IMAGE:?Select FRONTEND_IMAGE}"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+        restart: true
+
+volumes:
+  f1-cache:
+    external: true

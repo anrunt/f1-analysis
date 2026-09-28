@@ -12,3 +12,6 @@ wheels/
 
 # Zed project settings
 .zed/
+
+# env 
+/.env.production
