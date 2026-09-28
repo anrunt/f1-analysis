@@ -31,6 +31,7 @@ jobs:
   docker:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    needs: frontend
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -47,6 +48,23 @@ jobs:
       - name: Check API health
         run: curl --fail --show-error --silent --retry 5 --retry-connrefused --retry-delay 2 --max-time 5 http://127.0.0.1:8080/api/health
 
+      - name: Log in to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: docker/login-action@v4
+        with:
+          registry: 'ghcr.io'
+          username: '${{ github.actor }}'
+          password: '${{ secrets.GITHUB_TOKEN }}'
+
+      - name: Push to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: |
+          docker tag f1-backend:local ghcr.io/anrunt/f1-analysis-backend:$GITHUB_SHA
+          docker tag f1-frontend:local ghcr.io/anrunt/f1-analysis-frontend:$GITHUB_SHA
+
+          docker push ghcr.io/anrunt/f1-analysis-backend:$GITHUB_SHA
+          docker push ghcr.io/anrunt/f1-analysis-frontend:$GITHUB_SHA
+
       - name: Show service status and logs
         if: always()
         run: |
@@ -56,6 +74,10 @@ jobs:
       - name: Stop services
         if: always()
         run: docker compose down
+
+    permissions:
+      contents: read
+      packages: write
 
   
 permissions:
