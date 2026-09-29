@@ -10,8 +10,16 @@ COPY . ./
 
 RUN npm run build
 
-FROM nginxinc/nginx-unprivileged:stable-alpine
+FROM caddy:2.11.4-alpine
 
-COPY --from=build /app/dist/ /usr/share/nginx/html/
+COPY --from=build /app/dist/ /srv
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY Caddyfile /etc/caddy/Caddyfile
+
+RUN addgroup -S -g 10001 app \
+    && adduser -S -D -H -u 10001 -G app app \
+    && mkdir -p /data/caddy /config/caddy \
+    && chown -R app:app /data /config \
+    && chmod 700 /data/caddy /config/caddy
+
+USER app:app
