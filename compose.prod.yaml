@@ -15,6 +15,14 @@ services:
 
   frontend:
     image: "${FRONTEND_IMAGE:?Select FRONTEND_IMAGE}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "caddy_data:/data"
+      - "caddy_config:/config"
+    environment: 
+      SITE_ADDRESS: "${SITE_ADDRESS:?Set SITE_ADDRESS}"
     restart: unless-stopped
     depends_on:
       backend:
@@ -24,3 +32,5 @@ services:
 volumes:
   f1-cache:
     external: true
+  caddy_data:
+  caddy_config:

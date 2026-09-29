@@ -1,4 +1,4 @@
-:8080 {
+{$SITE_ADDRESS::8080} {
   handle_path /api/* {
     reverse_proxy backend:8000
   }
