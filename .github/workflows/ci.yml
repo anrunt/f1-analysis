@@ -90,6 +90,45 @@ jobs:
       contents: read
       packages: write
 
+
+  deploy:
+    runs-on: ubuntu-24.04
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    environment: production
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Prepare SSH
+        env:
+          VPS_SSH_PRIVATE_KEY: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p "$RUNNER_TEMP/f1-ssh"
+          printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/f1-ssh/key"
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > "$RUNNER_TEMP/f1-ssh/known_hosts"
+
+      - name: Check SSH connection
+        env:
+          VPS_HOST: ${{ vars.VPS_HOST }}
+          VPS_USER: ${{ vars.VPS_USER }}
+        run: |
+          ssh \
+            -i "$RUNNER_TEMP/f1-ssh/key" \
+            -o UserKnownHostsFile="$RUNNER_TEMP/f1-ssh/known_hosts" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=10 \
+            -o ControlPath=none \
+            -T \
+            "$VPS_USER@$VPS_HOST" id
+
+      - name: Clean up SSH files
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/f1-ssh/key" "$RUNNER_TEMP/f1-ssh/known_hosts"
   
 permissions:
   contents: read
