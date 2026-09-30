@@ -4,6 +4,10 @@ on:
   push:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   frontend:
     runs-on: ubuntu-24.04
@@ -96,7 +100,7 @@ jobs:
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     environment: production
-    timeout-minutes: 5
+    timeout-minutes: 15
     permissions: {}
     steps:
       - name: Prepare SSH
@@ -109,11 +113,29 @@ jobs:
           printf '%s\n' "$VPS_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/f1-ssh/key"
           printf '%s\n' "$VPS_KNOWN_HOSTS" > "$RUNNER_TEMP/f1-ssh/known_hosts"
 
-      - name: Check SSH connection
+      - name: Deploy release
         env:
           VPS_HOST: ${{ vars.VPS_HOST }}
           VPS_USER: ${{ vars.VPS_USER }}
+          BACKEND_IMAGE: ${{ needs.docker.outputs.backend_image }}
+          FRONTEND_IMAGE: ${{ needs.docker.outputs.frontend_image }}
         run: |
+          set -euo pipefail
+
+          if ! master_ref=$(git ls-remote --exit-code \
+              https://github.com/anrunt/f1-analysis.git \
+              refs/heads/master); then
+            printf 'Could not read the current master commit.\n' >&2
+            exit 1
+          fi
+
+          read -r master_sha _ <<< "$master_ref"
+
+          if [[ "$master_sha" != "$GITHUB_SHA" ]]; then
+            printf 'Skipping deployment: this commit is no longer the master head.\n'
+            exit 0
+          fi
+
           ssh \
             -i "$RUNNER_TEMP/f1-ssh/key" \
             -o UserKnownHostsFile="$RUNNER_TEMP/f1-ssh/known_hosts" \
@@ -123,7 +145,8 @@ jobs:
             -o ConnectTimeout=10 \
             -o ControlPath=none \
             -T \
-            "$VPS_USER@$VPS_HOST" id
+            "$VPS_USER@$VPS_HOST" \
+            "sudo -n /usr/local/sbin/f1-deploy '$BACKEND_IMAGE' '$FRONTEND_IMAGE'"
 
       - name: Clean up SSH files
         if: always()
