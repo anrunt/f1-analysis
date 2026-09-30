@@ -58,12 +58,19 @@ jobs:
 
       - name: Push to GHCR
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        id: release
         run: |
           docker tag f1-backend:local ghcr.io/anrunt/f1-analysis-backend:$GITHUB_SHA
           docker tag f1-frontend:local ghcr.io/anrunt/f1-analysis-frontend:$GITHUB_SHA
 
           docker push ghcr.io/anrunt/f1-analysis-backend:$GITHUB_SHA
           docker push ghcr.io/anrunt/f1-analysis-frontend:$GITHUB_SHA
+
+          backend_image=$(docker image inspect --format '{{index .RepoDigests 0}}' "ghcr.io/anrunt/f1-analysis-backend:$GITHUB_SHA")
+          frontend_image=$(docker image inspect --format '{{index .RepoDigests 0}}' "ghcr.io/anrunt/f1-analysis-frontend:$GITHUB_SHA")
+
+          echo "backend_image=$backend_image" >> "$GITHUB_OUTPUT"
+          echo "frontend_image=$frontend_image" >> "$GITHUB_OUTPUT"
 
       - name: Show service status and logs
         if: always()
@@ -74,6 +81,10 @@ jobs:
       - name: Stop services
         if: always()
         run: docker compose down
+
+    outputs:
+      backend_image: ${{ steps.release.outputs.backend_image }}
+      frontend_image: ${{ steps.release.outputs.frontend_image}}
 
     permissions:
       contents: read
