@@ -76,7 +76,6 @@ function DriverSelector({ drivers, driversLoading, driversError, comparing, onCo
         disabled={driversLoading || comparing || driverA === null || driverB === null || driverA === driverB}
       >
         {comparing ? 'Loading…' : 'Compare laps'}
-        <span aria-hidden="true">↗</span>
       </button>
     </>
   )

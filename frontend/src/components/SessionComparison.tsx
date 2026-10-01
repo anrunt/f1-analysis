@@ -97,8 +97,8 @@ function SessionComparison({ session, sessionControl }: Props) {
             <div><dt>Session</dt><dd>{session.session_name}</dd></div>
             <div><dt>Date</dt><dd>{new Date(session.date_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</dd></div>
             <div><dt>Session key</dt><dd>{session.session_key}</dd></div>
+            <div><dt>Data source</dt><dd>OpenF1</dd></div>
           </dl>
-          <p>Historical data · OpenF1</p>
         </section>
       </aside>
 
@@ -108,7 +108,6 @@ function SessionComparison({ session, sessionControl }: Props) {
             <p className="eyebrow">TELEMETRY WORKSPACE</p>
             <h1 id="page-title">Lap comparison{result && <span className="comparison-codes"> / {getDriverCode(result.driver_a.driver_number)} × {getDriverCode(result.driver_b.driver_number)}</span>}</h1>
           </div>
-          <span className="data-chip">03 CHANNELS</span>
         </div>
         {result ? (
           <TelemetryComparisonChart
@@ -122,13 +121,12 @@ function SessionComparison({ session, sessionControl }: Props) {
             <p className="eyebrow">{loading ? 'LOADING TELEMETRY' : error ? 'COMPARISON UNAVAILABLE' : 'READY TO COMPARE'}</p>
             <h2>{loading ? 'Retrieving lap data.' : error ? 'Unable to load this comparison.' : 'Choose your comparison pair.'}</h2>
             {loading ? <p role="status">Fetching lap times, sector differences and telemetry…</p> : error ? <p className="error" role="alert">{error}</p> : <p>Select two different drivers and run a lap comparison.</p>}
-            <div className="empty-channels"><span>01 / SPEED</span><span>02 / THROTTLE</span><span>03 / BRAKE</span></div>
           </div>
         )}
       </section>
 
       <aside className="comparison-summary" aria-labelledby="results-title">
-        <div className="summary-heading"><h2 id="results-title">COMPARISON SUMMARY</h2><span aria-hidden="true">↗</span></div>
+        <div className="summary-heading"><h2 id="results-title">COMPARISON SUMMARY</h2></div>
         {result ? (
           <>
             <section className={`delta-block delta-block--${result.lap_delta_s < 0 ? 'a' : result.lap_delta_s > 0 ? 'b' : 'equal'}`} aria-labelledby="lap-delta-title">
@@ -141,8 +139,8 @@ function SessionComparison({ session, sessionControl }: Props) {
                 const driver = drivers.find((entry) => entry.driver_number === lap.driver_number)
                 return (
                   <article key={lap.driver_number} className={`lap-card lap-card--${index === 0 ? 'a' : 'b'}`}>
-                    <div className="lap-card-top"><span><i className="driver-dot" aria-hidden="true" />{index === 0 ? 'A' : 'B'} / {getDriverCode(lap.driver_number)}</span><span>LAP {lap.lap_number}</span></div>
-                    <h3>{getDriverName(lap.driver_number)}<span>#{lap.driver_number}</span></h3>
+                    <div className="lap-card-top"><span><i className="driver-dot" aria-hidden="true" />{index === 0 ? 'A' : 'B'} / {driver?.name_acronym ? `${driver.name_acronym} / #${lap.driver_number}` : `#${lap.driver_number}`}</span><span>LAP {lap.lap_number}</span></div>
+                    <h3>{getDriverName(lap.driver_number)}</h3>
                     <p className="lap-time">{formatLapTime(lap.lap_time_s)}</p>
                     <p className="lap-meta">{driver?.team_name ? `${driver.team_name} · ` : ''}{lap.lap_time_s.toFixed(3)} s</p>
                   </article>
@@ -184,7 +182,6 @@ function SessionComparison({ session, sessionControl }: Props) {
                   )
                 })}
               </div>
-              <p className="sector-note">Independent sector deltas, not cumulative.</p>
             </section>
             {largestSector !== null && (
               <section className="sector-insight">
@@ -195,7 +192,7 @@ function SessionComparison({ session, sessionControl }: Props) {
             )}
           </>
         ) : (
-          <div className="summary-empty"><p className="eyebrow">LAP DELTA / A − B</p><strong>—<small> s</small></strong><p>Your lap times and sector differences will appear here.</p></div>
+          <div className="summary-empty"><p>Your lap times and sector differences will appear here</p></div>
         )}
       </aside>
     </div>
