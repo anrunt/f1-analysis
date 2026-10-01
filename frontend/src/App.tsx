@@ -12,7 +12,7 @@ function App() {
       <div className="setup-fields p-[25px_19px_20px] [border-bottom:1px_solid_var(--border)] mobile:p-[20px_16px]">
         <h2 id="session-setup-title" className="text-[16px] font-medium mb-[22px] mobile:mb-[14px] mobile:text-[15px]">Session setup</h2>
         <div className="driver-field min-w-0 flex flex-col gap-[9px] session-field">
-          <label htmlFor="session" className="[font:9px_var(--mono)] uppercase text-(--muted) tracking-[.04em] flex items-center gap-[8px]">Session / 2024 qualifying</label>
+          <label htmlFor="session" className="[font:12px_var(--mono)] uppercase text-(--muted) tracking-[.04em] flex items-center gap-[8px]">Session / 2024 qualifying</label>
           <select
             id="session"
             value={selectedSessionKey ?? ''}
