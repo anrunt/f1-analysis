@@ -4,7 +4,7 @@ import { ApiErrorSchema, ComparisonResultSchema } from '../types'
 import type { ComparisonResult, Session } from '../types'
 import { useDrivers } from '../hooks/useDrivers'
 import DriverSelector from './DriverSelector'
-import SpeedComparisonChart from './SpeedComparisonChart'
+import TelemetryComparisonChart from './TelemetryComparisonChart'
 
 type Props = {
   session: Session
@@ -100,7 +100,44 @@ function SessionComparison({ session }: Props) {
             <strong>{result.lap_delta_s > 0 ? '+' : ''}{result.lap_delta_s.toFixed(3)} <span>s</span></strong>
           </div>
 
-          <SpeedComparisonChart result={result} />
+          <section className="sector-deltas" aria-labelledby="sector-deltas-title">
+            <h2 id="sector-deltas-title" className="sector-deltas-title">SECTOR DELTAS / A − B</h2>
+            <p className="sector-deltas-note">Each delta compares one sector, not cumulative lap time.</p>
+
+            <div className="sector-grid">
+              {result.sector_deltas_s.map((delta, index) => {
+                let value = '—'
+                let description = 'Data unavailable'
+                let outcome = 'neutral'
+
+                if (delta !== null) {
+                  value = `${delta > 0 ? '+' : ''}${delta.toFixed(3)}`
+
+                  if (delta < 0) {
+                    description = `Driver A · ${getDriverName(result.driver_a.driver_number)} faster`
+                    outcome = 'a'
+                  } else if (delta > 0) {
+                    description = `Driver B · ${getDriverName(result.driver_b.driver_number)} faster`
+                    outcome = 'b'
+                  } else {
+                    description = 'Equal sector time'
+                  }
+                }
+
+                return (
+                  <article key={index} className={`sector-card sector-card--${outcome}`}>
+                    <h3 className="sector-card-label">S{index + 1}</h3>
+                    <p className="sector-delta-value">
+                      {value}{delta !== null && <span> s</span>}
+                    </p>
+                    <p className="sector-card-description">{description}</p>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+
+          <TelemetryComparisonChart result={result} />
         </section>
       )}
     </>
