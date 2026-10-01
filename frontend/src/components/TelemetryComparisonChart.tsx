@@ -4,9 +4,11 @@ import type { ComparisonResult } from '../types'
 
 type Props = {
   result: ComparisonResult
+  driverALabel: string
+  driverBLabel: string
 }
 
-function TelemetryComparisonChart({ result }: Props) {
+function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props) {
   const distancePercent = result.relative_distance.map((distance) => distance * 100)
   const speedTraces: Data[] = []
   const throttleTraces: Data[] = []
@@ -17,15 +19,16 @@ function TelemetryComparisonChart({ result }: Props) {
 
   for (const [index, driver] of [result.driver_a, result.driver_b].entries()) {
     const driverLabel = index === 0 ? 'A' : 'B'
-    const driverName = `Driver ${driverLabel} · #${driver.driver_number}`
-    const color = index === 0 ? '#e9f56b' : '#76c7d0'
+    const driverCode = index === 0 ? driverALabel : driverBLabel
+    const driverName = `Driver ${driverLabel} · ${driverCode} · #${driver.driver_number}`
+    const color = index === 0 ? '#ff3045' : '#dedee3'
     const baseTrace: Partial<ScatterData> = {
       type: 'scatter',
       mode: 'lines',
       name: driverName,
       x: [...distancePercent],
       connectgaps: false,
-      showlegend: true,
+      showlegend: false,
     }
 
     if (driver.speed_kmh !== null) {
@@ -68,27 +71,31 @@ function TelemetryComparisonChart({ result }: Props) {
 
   const baseLayout: Partial<Layout> = {
     autosize: true,
-    paper_bgcolor: '#1b211e',
-    plot_bgcolor: '#1b211e',
-    font: { color: '#abb5a9', family: 'Courier New, monospace', size: 12 },
-    margin: { l: 100, r: 26, t: 48, b: 76 },
+    paper_bgcolor: '#111214',
+    plot_bgcolor: '#111214',
+    font: { color: '#a2a3aa', family: 'IBM Plex Mono, monospace', size: 10 },
+    margin: { l: 48, r: 18, t: 12, b: 32 },
     xaxis: {
-      title: { text: 'Normalized lap distance [%]' },
       range: [0, 100],
+      dtick: 20,
       ticksuffix: '%',
-      gridcolor: '#343c36',
+      gridcolor: '#25272c',
       zeroline: false,
+      showspikes: true,
+      spikemode: 'across',
+      spikesnap: 'cursor',
+      spikecolor: '#777982',
+      spikethickness: 1,
     },
-    showlegend: true,
-    legend: { orientation: 'h', x: 0, y: 1.15 },
+    showlegend: false,
     hovermode: 'x unified',
+    hoverlabel: { bgcolor: '#1d1e22', bordercolor: '#3b3d44', font: { family: 'IBM Plex Mono, monospace', size: 11, color: '#f3f3f5' } },
   }
 
   const speedLayout: Partial<Layout> = {
     ...structuredClone(baseLayout),
     yaxis: {
-      title: { text: 'Speed [km/h]' },
-      gridcolor: '#343c36',
+      gridcolor: '#25272c',
       zeroline: false,
       fixedrange: true,
     },
@@ -97,10 +104,10 @@ function TelemetryComparisonChart({ result }: Props) {
   const throttleLayout: Partial<Layout> = {
     ...structuredClone(baseLayout),
     yaxis: {
-      title: { text: 'Throttle [%]' },
-      range: [0, 100],
+      range: [-5, 105],
+      tickvals: [0, 50, 100],
       ticksuffix: '%',
-      gridcolor: '#343c36',
+      gridcolor: '#25272c',
       zeroline: false,
       fixedrange: true,
     },
@@ -109,12 +116,11 @@ function TelemetryComparisonChart({ result }: Props) {
   const brakeLayout: Partial<Layout> = {
     ...structuredClone(baseLayout),
     yaxis: {
-      title: { text: 'Brake' },
       range: [-0.15, 1.15],
       tickmode: 'array',
       tickvals: [0, 1],
-      ticktext: ['Released', 'Pressed'],
-      gridcolor: '#343c36',
+      ticktext: ['OFF', 'ON'],
+      gridcolor: '#25272c',
       zeroline: false,
       fixedrange: true,
     },
@@ -123,8 +129,8 @@ function TelemetryComparisonChart({ result }: Props) {
   const charts = [
     {
       id: 'speed',
-      title: 'Speed comparison',
-      eyebrow: 'TELEMETRY / SPEED',
+      title: 'Speed',
+      unit: 'km/h',
       traces: speedTraces,
       layout: speedLayout,
       messages: speedMessages,
@@ -132,8 +138,8 @@ function TelemetryComparisonChart({ result }: Props) {
     },
     {
       id: 'throttle',
-      title: 'Throttle comparison',
-      eyebrow: 'TELEMETRY / THROTTLE',
+      title: 'Throttle',
+      unit: '%',
       traces: throttleTraces,
       layout: throttleLayout,
       messages: throttleMessages,
@@ -141,8 +147,8 @@ function TelemetryComparisonChart({ result }: Props) {
     },
     {
       id: 'brake',
-      title: 'Brake comparison',
-      eyebrow: 'TELEMETRY / BRAKE',
+      title: 'Brake',
+      unit: 'ON / OFF',
       traces: brakeTraces,
       layout: brakeLayout,
       messages: brakeMessages,
@@ -152,15 +158,18 @@ function TelemetryComparisonChart({ result }: Props) {
 
   return (
     <div className="telemetry-charts">
-      {charts.map((chart) => (
+      {charts.map((chart, index) => (
         <section
           key={chart.id}
           className="telemetry-chart"
           aria-labelledby={`telemetry-${chart.id}-title`}
         >
-          <div className="results-heading">
-            <p className="eyebrow">{chart.eyebrow}</p>
-            <h2 id={`telemetry-${chart.id}-title`}>{chart.title}</h2>
+          <div className="chart-heading">
+            <h2 id={`telemetry-${chart.id}-title`}><span className="channel-index">0{index + 1}</span>{chart.title}<small>{chart.unit}</small></h2>
+            <div className="chart-legend" aria-label="Driver colors">
+              <span className="legend-driver-a"><i aria-hidden="true" />{driverALabel}<small>#{result.driver_a.driver_number}</small></span>
+              <span className="legend-driver-b"><i aria-hidden="true" />{driverBLabel}<small>#{result.driver_b.driver_number}</small></span>
+            </div>
           </div>
 
           {chart.traces.length > 0 ? (
@@ -168,7 +177,7 @@ function TelemetryComparisonChart({ result }: Props) {
               <Plot
                 data={chart.traces}
                 layout={chart.layout}
-                config={{ displaylogo: false, responsive: true }}
+                config={{ displaylogo: false, responsive: true, displayModeBar: 'hover' }}
                 useResizeHandler
                 className={`telemetry-chart-plot telemetry-chart-plot--${chart.id}`}
               />
@@ -185,7 +194,7 @@ function TelemetryComparisonChart({ result }: Props) {
       ))}
 
       <p className="telemetry-chart-note">
-        Distance is normalized separately for each lap. Telemetry alignment is approximate.
+        Normalized lap distance [%] · Distance is normalized separately for each lap. Telemetry alignment is approximate.
         Gaps indicate unknown measurements; brake steps hold the last sampled state.
       </p>
     </div>

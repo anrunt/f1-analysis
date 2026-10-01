@@ -24,8 +24,9 @@ function DriverSelector({ drivers, driversLoading, driversError, comparing, onCo
   return (
     <>
       <div className="driver-picker">
-        <div className="driver-field">
-          <label htmlFor="driver-a">Driver A</label>
+        <p className="eyebrow">COMPARISON PAIR</p>
+        <div className="driver-field driver-field--a">
+          <label htmlFor="driver-a"><span className="driver-dot" aria-hidden="true" />Driver A</label>
           <select
             id="driver-a"
             value={driverA ?? ''}
@@ -41,8 +42,8 @@ function DriverSelector({ drivers, driversLoading, driversError, comparing, onCo
             ))}
           </select>
         </div>
-        <div className="driver-field">
-          <label htmlFor="driver-b">Driver B</label>
+        <div className="driver-field driver-field--b">
+          <label htmlFor="driver-b"><span className="driver-dot" aria-hidden="true" />Driver B</label>
           <select
             id="driver-b"
             value={driverB ?? ''}
@@ -58,6 +59,7 @@ function DriverSelector({ drivers, driversLoading, driversError, comparing, onCo
             ))}
           </select>
         </div>
+        <p className="picker-note">Fastest available laps · delta A − B</p>
       </div>
       {driversLoading && <p className="status" role="status">Loading drivers…</p>}
       {driversError && <p className="error" role="alert">{driversError}</p>}
@@ -68,12 +70,12 @@ function DriverSelector({ drivers, driversLoading, driversError, comparing, onCo
         <p className="status">Choose two different drivers.</p>
       )}
       <button
+        className="compare-button"
         type="button"
         onClick={handleCompare}
         disabled={driversLoading || comparing || driverA === null || driverB === null || driverA === driverB}
       >
         {comparing ? 'Loading…' : 'Compare laps'}
-        <span aria-hidden="true">↗</span>
       </button>
     </>
   )
