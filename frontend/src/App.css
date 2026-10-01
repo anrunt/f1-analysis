@@ -31,7 +31,7 @@ h1, h2, h3, p { margin: 0; }
 .status, .error { font-size: 12px; line-height: 1.7; margin-top: 14px; }
 .status { color: var(--muted); }
 .error { color: #ff8894; overflow-wrap: anywhere; }
-.session-context { padding: 22px 19px; border-top: 1px solid var(--border); margin-top: auto; }
+.session-context { padding: 22px 19px; border-top: 1px solid var(--border); margin-top: 0; }
 .session-context dl { margin: 18px 0; }
 .session-context dl > div { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 13px; font: 9px/1.5 var(--mono); }
 .session-context dt { color: var(--muted); flex-shrink: 0; }
