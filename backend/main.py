@@ -130,6 +130,8 @@ def prepare_telemetry(samples: list[CarData], lap_start: datetime) -> pd.DataFra
 
     df["relative_distance"] = df["distance_m"] / final_distance
 
+    print(df.head(5))
+
     return df
 
 
@@ -166,6 +168,73 @@ def resample_speed(grid, df: pd.DataFrame):
 
     return df
 
+def resample_throttle(grid, df: pd.DataFrame):
+    if len(df) < 2:
+        raise ValueError("Need at least 2 samples for resampling throttle")
+
+    relative_distance = df["relative_distance"].to_numpy()
+    if not np.all(np.isfinite(relative_distance)):
+        raise ValueError("Relative distance must be finite")
+
+    throttle = df["throttle"].to_numpy(dtype=float, na_value=np.nan, copy=True)
+    valid_throttle = np.isfinite(throttle) & (throttle >= 0) & (throttle <= 100)
+    throttle[~valid_throttle] = np.nan
+
+    if not np.all(np.diff(relative_distance) > 0):
+        raise ValueError("Relative distances are not strictly increasing")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.min() < relative_distance[0]:
+        raise ValueError("Grid starts before source data")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.max() > relative_distance[-1]:
+        raise ValueError("Grid ends after source data")
+
+    resampled_throttle = np.interp(grid, relative_distance, throttle)
+
+    df = pd.DataFrame({
+        "relative_distance": grid,
+        "throttle_percent": resampled_throttle 
+    })
+
+    return df
+
+def resample_brake(grid, df: pd.DataFrame):
+    if len(df) < 2:
+        raise ValueError("Need at least 2 samples for resampling brake")
+
+    relative_distance = df["relative_distance"].to_numpy()
+    if not np.all(np.isfinite(relative_distance)):
+        raise ValueError("Relative distance must be finite")
+
+    brake = df["brake"].to_numpy(dtype=float, na_value=np.nan, copy=True)
+    valid_brake = np.isin(brake, [0, 100])
+    brake[~valid_brake] = np.nan
+
+    if not np.all(np.diff(relative_distance) > 0):
+        raise ValueError("Relative distances are not strictly increasing")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.min() < relative_distance[0]:
+        raise ValueError("Grid starts before source data")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.max() > relative_distance[-1]:
+        raise ValueError("Grid ends after source data")
+
+    indices = np.searchsorted(relative_distance, grid, side="right") - 1
+
+    resampled_brake = brake[indices]
+    brake_on = pd.array(resampled_brake == 100, dtype="boolean")
+    brake_on[np.isnan(resampled_brake)] = pd.NA
+
+    df = pd.DataFrame({
+        "relative_distance": grid,
+        "brake_on": brake_on
+    })
+
+    return df
 
 def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonResult:
     if driver_a == driver_b:
@@ -222,6 +291,16 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         driver_b: None
     }
 
+    throttle_by_driver: dict[int, list[float | None] | None] = {
+        driver_a: None,
+        driver_b: None
+    }
+
+    brake_by_driver: dict[int, list[bool | None] | None] = {
+        driver_a: None,
+        driver_b: None
+    }
+
     for driver, fastest_lap in drivers_fastest_lap.items():
         car_data = fetch_car_data(fastest_lap)
 
@@ -236,8 +315,34 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
             telemetry_df = prepare_telemetry(car_data, fastest_lap.date_start)
 
             resampled_speed_df = resample_speed(grid, telemetry_df)
+            resampled_throttle_df = resample_throttle(grid, telemetry_df)
+            resampled_brake_df = resample_brake(grid, telemetry_df)
+
+            throttle_values = []
+            for throttle in resampled_throttle_df["throttle_percent"]:
+                if np.isnan(throttle):
+                    throttle_values.append(None)
+                else:
+                    throttle_values.append(float(throttle))
+
+            brake_values = []
+            for brake in resampled_brake_df["brake_on"]:
+                if pd.isna(brake):
+                    brake_values.append(None)
+                else:
+                    brake_values.append(bool(brake))
 
             speed_by_driver[driver] = resampled_speed_df["speed_kmh"].tolist()
+
+            if all(value is None for value in throttle_values):
+                throttle_by_driver[driver] = None
+            else:
+                throttle_by_driver[driver] = throttle_values
+
+            if all(value is None for value in brake_values):
+                brake_by_driver[driver] = None
+            else:
+                brake_by_driver[driver] = brake_values
 
 
     driver_a_data = DriverComparisonData(
@@ -245,7 +350,9 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         lap_number=driver_a_lap.lap_number,
         lap_time_s=driver_a_lap.lap_duration,
         sector_times_s=sector_times_a,
-        speed_kmh=speed_by_driver[driver_a]
+        speed_kmh=speed_by_driver[driver_a],
+        throttle_percent=throttle_by_driver[driver_a],
+        brake_on=brake_by_driver[driver_a]
     )
 
     driver_b_data = DriverComparisonData(
@@ -253,7 +360,9 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         lap_number=driver_b_lap.lap_number,
         lap_time_s=driver_b_lap.lap_duration,
         sector_times_s=sector_times_b,
-        speed_kmh=speed_by_driver[driver_b]
+        speed_kmh=speed_by_driver[driver_b],
+        throttle_percent=throttle_by_driver[driver_b],
+        brake_on=brake_by_driver[driver_b]
     )
 
     comparison_result = ComparisonResult(

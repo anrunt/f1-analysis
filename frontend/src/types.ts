@@ -1,22 +1,26 @@
 import { z } from 'zod'
 
-export const SessionsSchema = z.array(z.object({
-  session_key: z.number().int(),
-  year: z.number().int(),
-  session_name: z.string(),
-  circuit_short_name: z.string(),
-  date_start: z.string(),
-}))
+export const SessionsSchema = z.array(
+  z.object({
+    session_key: z.number().int(),
+    year: z.number().int(),
+    session_name: z.string(),
+    circuit_short_name: z.string(),
+    date_start: z.string(),
+  }),
+)
 
 export type Session = z.infer<typeof SessionsSchema>[number]
 
-export const DriversSchema = z.array(z.object({
-  session_key: z.number().int(),
-  driver_number: z.number().int(),
-  full_name: z.string().nullable(),
-  name_acronym: z.string().nullable(),
-  team_name: z.string().nullable(),
-}))
+export const DriversSchema = z.array(
+  z.object({
+    session_key: z.number().int(),
+    driver_number: z.number().int(),
+    full_name: z.string().nullable(),
+    name_acronym: z.string().nullable(),
+    team_name: z.string().nullable(),
+  }),
+)
 
 export type Driver = z.infer<typeof DriversSchema>[number]
 
@@ -26,6 +30,16 @@ export const DriverComparisonDataSchema = z.object({
   lap_time_s: z.number(),
   sector_times_s: z.array(z.number().nullable()),
   speed_kmh: z.array(z.number()).nullable(),
+
+  throttle_percent: z
+    .array(z.number().nullable())
+    .nullable()
+    .default(null),
+
+  brake_on: z
+    .array(z.boolean().nullable())
+    .nullable()
+    .default(null),
 })
 
 export const ComparisonResultSchema = z.object({
