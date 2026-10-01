@@ -1,5 +1,20 @@
 # React + TypeScript + Vite
 
+## Styling
+
+The application uses Tailwind CSS 4 through `@tailwindcss/vite`. Component styles
+live in JSX utility classes. `src/index.css` contains the document reset, palette,
+loading animation, and the original inclusive responsive variants: `wide` (1600px+),
+`compact` (up to 1100px), `stacked` (up to 850px), `tablet` (601–850px),
+`mobile` (up to 600px), and `tiny` (up to 380px).
+
+Preflight is deliberately omitted to preserve native form controls and Plotly's
+existing rendering. Exact pixel values and font shorthands preserve the original
+spacing and typography. Plotly's layout configuration and data-driven sector bar
+widths remain in JavaScript.
+
+Run `npm run lint` and `npm run build` to check the application.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

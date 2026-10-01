@@ -157,18 +157,18 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
   ]
 
   return (
-    <div className="telemetry-charts">
+    <div className="telemetry-charts flex flex-col gap-[13px] min-w-0">
       {charts.map((chart, index) => (
         <section
           key={chart.id}
-          className="telemetry-chart"
+          className="telemetry-chart min-w-0 [border:1px_solid_var(--border)] bg-(--panel) rounded-[3px] overflow-hidden"
           aria-labelledby={`telemetry-${chart.id}-title`}
         >
-          <div className="chart-heading">
-            <h2 id={`telemetry-${chart.id}-title`}><span className="channel-index">0{index + 1}</span>{chart.title}<small>{chart.unit}</small></h2>
-            <div className="chart-legend" aria-label="Driver colors">
-              <span className="legend-driver-a"><i aria-hidden="true" />{driverALabel}<small>#{result.driver_a.driver_number}</small></span>
-              <span className="legend-driver-b"><i aria-hidden="true" />{driverBLabel}<small>#{result.driver_b.driver_number}</small></span>
+          <div className="chart-heading p-[13px_15px_3px] flex justify-between items-center gap-[12px] mobile:p-[13px_11px_3px]">
+            <h2 id={`telemetry-${chart.id}-title`} className="flex items-center gap-[10px] text-[12px] font-medium mobile:gap-[7px]"><span className="channel-index [font:9px_var(--mono)] text-(--muted)">0{index + 1}</span>{chart.title}<small className="[font:9px_var(--mono)] text-(--muted) mobile:text-[8px]">{chart.unit}</small></h2>
+            <div className="chart-legend flex gap-[16px] [font:9px_var(--mono)] compact:gap-[10px] mobile:text-[8px] mobile:gap-[10px]" aria-label="Driver colors">
+              <span className="legend-driver-a flex items-center gap-[6px]"><i aria-hidden="true" className="inline-block w-[15px] h-[2px] bg-(--driver-a) mobile:w-[11px]" />{driverALabel}<small className="text-(--muted) [font:inherit]">#{result.driver_a.driver_number}</small></span>
+              <span className="legend-driver-b flex items-center gap-[6px]"><i aria-hidden="true" className="inline-block w-[15px] h-[2px] bg-(--driver-b) mobile:w-[11px]" />{driverBLabel}<small className="text-(--muted) [font:inherit]">#{result.driver_b.driver_number}</small></span>
             </div>
           </div>
 
@@ -179,21 +179,21 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
                 layout={chart.layout}
                 config={{ displaylogo: false, responsive: true, displayModeBar: 'hover' }}
                 useResizeHandler
-                className={`telemetry-chart-plot telemetry-chart-plot--${chart.id}`}
+                className="telemetry-chart-plot block w-full h-[190px] wide:h-[220px] stacked:h-[185px] mobile:h-[200px]"
               />
               {chart.messages.length > 0 && (
-                <ul className="telemetry-chart-messages">
+                <ul className="telemetry-chart-messages m-[15px] text-(--muted) text-[12px] leading-[1.7] pl-[15px]">
                   {chart.messages.map((message) => <li key={message}>{message}</li>)}
                 </ul>
               )}
             </>
           ) : (
-            <p className="telemetry-chart-message">{chart.emptyMessage}</p>
+            <p className="telemetry-chart-message m-[15px] text-(--muted) text-[12px] leading-[1.7] min-h-[155px] flex items-center justify-center text-center">{chart.emptyMessage}</p>
           )}
         </section>
       ))}
 
-      <p className="telemetry-chart-note">
+      <p className="telemetry-chart-note [font:12px/1.7_var(--mono)] text-(--muted) p-[0_2px]">
         Normalized lap distance [%] · Distance is normalized separately for each lap. Telemetry alignment is approximate.
         Gaps indicate unknown measurements; brake steps hold the last sampled state.
       </p>
