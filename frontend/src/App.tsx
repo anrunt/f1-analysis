@@ -8,23 +8,14 @@ function App() {
   const [selectedSessionKey, setSelectedSessionKey] = useState<number | null>(null)
   const selectedSession = sessions.find((session) => session.session_key === selectedSessionKey) ?? null
 
-  return (
-    <main className="dashboard">
-      <header className="site-header">
-        <span className="site-mark" aria-hidden="true">◩</span>
-        <span>APEX / LAP ANALYSIS</span>
-        <span className="site-header-end">OPENF1 DATA</span>
-      </header>
-
-      <section className="intro" aria-labelledby="page-title">
-        <p className="eyebrow">QUALIFYING · 2024</p>
-        <h1 id="page-title">Lap <em>against</em> lap.</h1>
-        <p className="intro-description">
-          Choose a qualifying session and two drivers to compare their fastest available laps.
-          One click, two lap times, one difference.
-        </p>
+  const sessionControl = (
+    <section className="session-setup" aria-labelledby="session-setup-title">
+      <p className="eyebrow sidebar-eyebrow">WORKSPACE 01</p>
+      <div className="workspace-current"><span aria-hidden="true">◈</span> Lap comparison</div>
+      <div className="setup-fields">
+        <h2 id="session-setup-title">Session setup</h2>
         <div className="driver-field session-field">
-          <label htmlFor="session">Qualifying session</label>
+          <label htmlFor="session">Session / 2024 qualifying</label>
           <select
             id="session"
             value={selectedSessionKey ?? ''}
@@ -47,13 +38,47 @@ function App() {
         {!sessionsLoading && !sessionsError && sessions.length === 0 && (
           <p className="status">No qualifying sessions available for 2024.</p>
         )}
-      </section>
+      </div>
+    </section>
+  )
 
-      {selectedSession && (
-        <SessionComparison key={selectedSession.session_key} session={selectedSession} />
+  return (
+    <main className="dashboard">
+      <header className="site-header">
+        <div className="site-brand">
+          <span className="site-mark" aria-hidden="true">A<span /></span>
+          <div><strong>APEX</strong><span className="brand-caption">LAP INTELLIGENCE</span></div>
+        </div>
+        <div className="header-session">
+          <strong>{selectedSession?.circuit_short_name ?? 'LAP ANALYSIS'}</strong>
+          <span>2024 · {selectedSession?.session_name.toUpperCase() ?? 'QUALIFYING'}</span>
+        </div>
+        <span className="site-header-end"><i aria-hidden="true" />ARCHIVE{selectedSession ? ` / ${selectedSession.session_key}` : ''}</span>
+      </header>
+
+      {selectedSession ? (
+        <SessionComparison key={selectedSession.session_key} session={selectedSession} sessionControl={sessionControl} />
+      ) : (
+        <div className="workspace">
+          <aside className="workspace-sidebar">{sessionControl}</aside>
+          <section className="telemetry-workspace" aria-labelledby="page-title">
+            <div className="workspace-heading"><div><p className="eyebrow">TELEMETRY WORKSPACE</p><h1 id="page-title">Lap comparison</h1></div><span className="data-chip">03 CHANNELS</span></div>
+            <div className="workspace-empty">
+              <span className="empty-symbol" aria-hidden="true">⌁</span>
+              <p className="eyebrow">START YOUR ANALYSIS</p>
+              <h2>Every lap tells a story.</h2>
+              <p>Select a qualifying session, then compare two drivers’ fastest available laps.</p>
+              <div className="empty-channels"><span>01 / SPEED</span><span>02 / THROTTLE</span><span>03 / BRAKE</span></div>
+            </div>
+          </section>
+          <aside className="comparison-summary" aria-label="Comparison summary">
+            <div className="summary-heading"><h2>COMPARISON SUMMARY</h2><span aria-hidden="true">↗</span></div>
+            <div className="summary-empty"><p className="eyebrow">LAP DELTA / A − B</p><strong>—<small> s</small></strong><p>Your lap times and sector differences will appear here.</p></div>
+          </aside>
+        </div>
       )}
 
-      <footer className="site-footer">01 / LAP COMPARISON <span>DATA SOURCE — OPENF1</span></footer>
+      <footer className="site-footer"><span>OPENF1 / ARCHIVED SESSIONS</span><span>APEX · LAP COMPARISON / 2024</span></footer>
     </main>
   )
 }
