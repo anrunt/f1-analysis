@@ -20,7 +20,7 @@ A full-stack Formula 1 telemetry analysis application for comparing drivers' fas
 ## What it does
 
 - Select a 2024 qualifying session and compare two drivers' fastest available laps.
-- Explore speed, throttle, braking and gear traces with interactive hover and zoom on a shared relative-distance axis.
+- Explore speed, throttle, braking, gear and RPM traces with interactive hover and zoom on a shared relative-distance axis.
 - Compare lap times and sector deltas, including the sector with the largest time difference.
 - Process timestamped telemetry into a common **1001-point grid** using channel-specific resampling.
 - Cache processed comparisons in SQLite for one hour, with storage persisted across container replacements.
@@ -49,8 +49,8 @@ Different laps contain samples recorded at different timestamps. Comparing them 
 1. **Select laps.** Choose each driver's shortest positive lap duration, excluding pit-out laps, and fetch car data within that lap's time window.
 2. **Estimate distance.** Sort samples by timestamp, convert speed from km/h to m/s, and integrate speed over time using the trapezoidal rule: `Δs = (v_previous + v_current) / 2 × Δt`.
 3. **Normalise.** Divide cumulative distance by each lap's total estimated sampled distance, producing a relative-distance axis from `0` to `1`.
-4. **Resample.** Map both laps onto `np.linspace(0, 1, 1001)`. Speed and throttle use linear interpolation. Brake and gear use the last sampled state at or before each grid point, preserving their discrete values. Gear accepts values from `0` to `8`, with `0` displayed as `N` (neutral / no gear engaged).
-5. **Preserve unknowns.** Invalid or missing throttle, brake and gear values become `null` in the response and gaps in the charts. Brake and gear hold each sampled state only until the next sample; missing measurements are not filled with the last known value. Entirely unavailable telemetry channels are identified in the UI.
+4. **Resample.** Map both laps onto `np.linspace(0, 1, 1001)`. Speed, throttle and RPM use linear interpolation. RPM accepts finite, non-negative values without a fixed upper limit; zero is a valid measurement. Brake and gear use the last sampled state at or before each grid point, preserving their discrete values. Gear accepts values from `0` to `8`, with `0` displayed as `N` (neutral / no gear engaged).
+5. **Preserve unknowns.** Invalid or missing throttle, brake, gear and RPM values become `null` in the response and gaps in the charts. Brake and gear hold each sampled state only until the next sample; missing measurements are not filled with the last known value. Entirely unavailable telemetry channels are identified in the UI.
 
 Lap and sector deltas come from **OpenF1's reported timing values**, independently of the resampled traces. All deltas use **A − B**: a negative value means driver A was faster.
 

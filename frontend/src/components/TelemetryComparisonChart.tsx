@@ -14,10 +14,12 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
   const throttleTraces: Data[] = []
   const brakeTraces: Data[] = []
   const gearTraces: Data[] = []
+  const rpmTraces: Data[] = []
   const speedMessages: string[] = []
   const throttleMessages: string[] = []
   const brakeMessages: string[] = []
   const gearMessages: string[] = []
+  const rpmMessages: string[] = []
 
   for (const [index, driver] of [result.driver_a, result.driver_b].entries()) {
     const driverLabel = index === 0 ? 'A' : 'B'
@@ -82,6 +84,17 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
       })
     } else {
       gearMessages.push(`Gear telemetry is unavailable for driver ${driverLabel} (#${driver.driver_number}).`)
+    }
+
+    if (driver.rpm !== null) {
+      rpmTraces.push({
+        ...baseTrace,
+        y: [...driver.rpm],
+        line: { color, dash: 'solid', width: 2, shape: 'linear' },
+        hovertemplate: '%{y:.0f} rpm<extra>%{fullData.name}</extra>',
+      })
+    } else {
+      rpmMessages.push(`RPM telemetry is unavailable for driver ${driverLabel} (#${driver.driver_number}).`)
     }
   }
 
@@ -155,6 +168,16 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
     },
   }
 
+  const rpmLayout: Partial<Layout> = {
+    ...structuredClone(baseLayout),
+    yaxis: {
+      tickformat: '.0f',
+      gridcolor: '#25272c',
+      zeroline: false,
+      fixedrange: true,
+    },
+  }
+
   const charts = [
     {
       id: 'speed',
@@ -191,6 +214,15 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
       layout: gearLayout,
       messages: gearMessages,
       emptyMessage: 'No gear telemetry is available for either driver.',
+    },
+    {
+      id: 'rpm',
+      title: 'RPM',
+      unit: 'rpm',
+      traces: rpmTraces,
+      layout: rpmLayout,
+      messages: rpmMessages,
+      emptyMessage: 'No RPM telemetry is available for either driver.',
     },
   ]
 

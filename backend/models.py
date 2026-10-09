@@ -47,7 +47,7 @@ class CarData(BaseModel):
     speed: int
     driver_number: int
     meeting_key: int
-    rpm: int
+    rpm: int | None = None
     brake: int | None = None
     throttle: int | None = None
     drs: int
@@ -76,6 +76,7 @@ class DriverComparisonData(BaseModel):
     throttle_percent: list[float | None] | None
     brake_on: list[bool | None] | None
     n_gear: list[int | None] | None
+    rpm: list[float | None] | None
 
 
 class ComparisonResult(BaseModel):

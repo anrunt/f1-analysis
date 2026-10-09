@@ -45,6 +45,11 @@ export const DriverComparisonDataSchema = z.object({
     .array(z.number().int().min(0).max(8).nullable())
     .nullable()
     .default(null),
+
+  rpm: z
+    .array(z.number().min(0).nullable())
+    .nullable()
+    .default(null),
 })
 
 export const ComparisonResultSchema = z.object({
