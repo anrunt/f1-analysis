@@ -40,6 +40,11 @@ export const DriverComparisonDataSchema = z.object({
     .array(z.boolean().nullable())
     .nullable()
     .default(null),
+
+  n_gear: z
+    .array(z.number().int().min(0).max(8).nullable())
+    .nullable()
+    .default(null),
 })
 
 export const ComparisonResultSchema = z.object({

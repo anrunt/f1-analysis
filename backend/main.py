@@ -236,6 +236,41 @@ def resample_brake(grid, df: pd.DataFrame):
 
     return df
 
+def resample_gear(grid, df: pd.DataFrame):
+    if len(df) < 2:
+        raise ValueError("Need at least 2 samples for resampling gear")
+
+    relative_distance = df["relative_distance"].to_numpy()
+    if not np.all(np.isfinite(relative_distance)):
+        raise ValueError("Relative distance must be finite")
+
+    gear = df["n_gear"].to_numpy(dtype=float, na_value=np.nan, copy=True)
+    valid_gear = np.isin(gear, [0, 1, 2, 3, 4, 5, 6, 7, 8])
+    gear[~valid_gear] = np.nan
+
+    if not np.all(np.diff(relative_distance) > 0):
+        raise ValueError("Relative distances are not strictly increasing")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.min() < relative_distance[0]:
+        raise ValueError("Grid starts before source data")
+
+    # Not really necessary for now but its in case someone changes grid creation
+    if grid.max() > relative_distance[-1]:
+        raise ValueError("Grid ends after source data")
+
+    indices = np.searchsorted(relative_distance, grid, side="right") - 1
+
+    resampled_gear = gear[indices]
+    n_gear = pd.array(resampled_gear, dtype="Int64")
+
+    df = pd.DataFrame({
+        "relative_distance": grid,
+        "n_gear": n_gear
+    })
+
+    return df
+
 def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonResult:
     if driver_a == driver_b:
         raise SameDriverError("Pick two different drivers")
@@ -301,6 +336,11 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         driver_b: None
     }
 
+    gear_by_driver: dict[int, list[int | None] | None] = {
+        driver_a: None,
+        driver_b: None
+    }
+
     for driver, fastest_lap in drivers_fastest_lap.items():
         car_data = fetch_car_data(fastest_lap)
 
@@ -317,6 +357,7 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
             resampled_speed_df = resample_speed(grid, telemetry_df)
             resampled_throttle_df = resample_throttle(grid, telemetry_df)
             resampled_brake_df = resample_brake(grid, telemetry_df)
+            resampled_gear_df = resample_gear(grid, telemetry_df)
 
             throttle_values = []
             for throttle in resampled_throttle_df["throttle_percent"]:
@@ -332,6 +373,13 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
                 else:
                     brake_values.append(bool(brake))
 
+            gear_values = []
+            for gear in resampled_gear_df["n_gear"]:
+                if pd.isna(gear):
+                    gear_values.append(None)
+                else:
+                    gear_values.append(int(gear))
+
             speed_by_driver[driver] = resampled_speed_df["speed_kmh"].tolist()
 
             if all(value is None for value in throttle_values):
@@ -344,6 +392,11 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
             else:
                 brake_by_driver[driver] = brake_values
 
+            if all(value is None for value in gear_values):
+                gear_by_driver[driver] = None
+            else:
+                gear_by_driver[driver] = gear_values
+
 
     driver_a_data = DriverComparisonData(
         driver_number=driver_a,
@@ -352,7 +405,8 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         sector_times_s=sector_times_a,
         speed_kmh=speed_by_driver[driver_a],
         throttle_percent=throttle_by_driver[driver_a],
-        brake_on=brake_by_driver[driver_a]
+        brake_on=brake_by_driver[driver_a],
+        n_gear=gear_by_driver[driver_a]
     )
 
     driver_b_data = DriverComparisonData(
@@ -362,7 +416,8 @@ def compare_laps(session_key: int, driver_a: int, driver_b: int) -> ComparisonRe
         sector_times_s=sector_times_b,
         speed_kmh=speed_by_driver[driver_b],
         throttle_percent=throttle_by_driver[driver_b],
-        brake_on=brake_by_driver[driver_b]
+        brake_on=brake_by_driver[driver_b],
+        n_gear=gear_by_driver[driver_b]
     )
 
     comparison_result = ComparisonResult(

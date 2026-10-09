@@ -13,9 +13,11 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
   const speedTraces: Data[] = []
   const throttleTraces: Data[] = []
   const brakeTraces: Data[] = []
+  const gearTraces: Data[] = []
   const speedMessages: string[] = []
   const throttleMessages: string[] = []
   const brakeMessages: string[] = []
+  const gearMessages: string[] = []
 
   for (const [index, driver] of [result.driver_a, result.driver_b].entries()) {
     const driverLabel = index === 0 ? 'A' : 'B'
@@ -66,6 +68,20 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
       })
     } else {
       brakeMessages.push(`Brake telemetry is unavailable for driver ${driverLabel} (#${driver.driver_number}).`)
+    }
+
+    if (driver.n_gear !== null) {
+      const gearLabels = driver.n_gear.map((value) => value === null ? null : value === 0 ? 'N' : String(value))
+
+      gearTraces.push({
+        ...baseTrace,
+        y: [...driver.n_gear],
+        customdata: gearLabels,
+        line: { color, dash: 'solid', width: 2, shape: 'hv' },
+        hovertemplate: 'Gear %{customdata}<extra>%{fullData.name}</extra>',
+      })
+    } else {
+      gearMessages.push(`Gear telemetry is unavailable for driver ${driverLabel} (#${driver.driver_number}).`)
     }
   }
 
@@ -126,6 +142,19 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
     },
   }
 
+  const gearLayout: Partial<Layout> = {
+    ...structuredClone(baseLayout),
+    yaxis: {
+      range: [-0.5, 8.5],
+      tickmode: 'array',
+      tickvals: [0, 1, 2, 3, 4, 5, 6, 7, 8],
+      ticktext: ['N', '1', '2', '3', '4', '5', '6', '7', '8'],
+      gridcolor: '#25272c',
+      zeroline: false,
+      fixedrange: true,
+    },
+  }
+
   const charts = [
     {
       id: 'speed',
@@ -153,6 +182,15 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
       layout: brakeLayout,
       messages: brakeMessages,
       emptyMessage: 'No brake telemetry is available for either driver.',
+    },
+    {
+      id: 'gear',
+      title: 'Gear',
+      unit: 'N / 1–8',
+      traces: gearTraces,
+      layout: gearLayout,
+      messages: gearMessages,
+      emptyMessage: 'No gear telemetry is available for either driver.',
     },
   ]
 
@@ -195,7 +233,7 @@ function TelemetryComparisonChart({ result, driverALabel, driverBLabel }: Props)
 
       <p className="telemetry-chart-note [font:12px/1.7_var(--mono)] text-(--muted) p-[0_2px]">
         Normalized lap distance [%] · Distance is normalized separately for each lap. Telemetry alignment is approximate.
-        Gaps indicate unknown measurements; brake steps hold the last sampled state.
+        Gaps indicate unknown measurements; brake and gear steps hold the last sampled state.
       </p>
     </div>
   )
